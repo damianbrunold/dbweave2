@@ -1,5 +1,25 @@
+class SingleGrid(size: Int) {
+    private val data = IntArray(size) { -1 }
+
+    val size: Int
+        get() = this.data.size
+
+    operator fun get(primary: Int): Int {
+        return data[primary]
+    }
+
+    operator fun set(primary: Int, secondary: Int, set: Boolean) {
+        if (set) {
+            data[primary] = secondary
+        } else {
+            data[primary] = -1
+        }
+    }
+
+}
+
 class Grid(size: Int) {
-    val data = LongArray(size)
+    private val data = LongArray(size)
 
     val size: Int
         get() = this.data.size
@@ -19,7 +39,7 @@ class Grid(size: Int) {
 }
 
 class Model(width: Int, height: Int) {
-    val threading = Grid(width)
+    val threading = SingleGrid(width)
     val tieup = Grid(width)
     val treadling = Grid(height)
     val pegplan = Grid(height)
