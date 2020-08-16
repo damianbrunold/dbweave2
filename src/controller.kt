@@ -98,12 +98,31 @@ class Dbweave(title: String) : JFrame() {
     }
 
     private fun arrangeComponents() {
-        val xx = width - (settings.treadling_visible + 1) * settings.dx
-        val yy = (settings.threading_visible + 1) * settings.dy
-        threadingView.bounds = Rectangle(0, 0, xx - settings.dx + 1, settings.threading_visible * settings.dy + 1)
-        tieupView.bounds = Rectangle(xx, 0, settings.treadling_visible * settings.dx + 1, settings.threading_visible * settings.dy + 1)
-        treadlingView.bounds = Rectangle(xx, yy, settings.treadling_visible * settings.dx + 1, height - yy - settings.dy + 1)
-        patternView.bounds = Rectangle(0, yy, xx - settings.dx + 1, height - yy - settings.dy + 1)
+        val border = 2
+        val cx = (contentPane.width - 2 * border) / settings.dx
+        val cy = (contentPane.height - 2 * border) / settings.dy
+        val px = cx - settings.treadling_visible - 1
+        val py = cy - settings.threading_visible - 1
+
+        val x1 = border
+        val w1 = px * settings.dx + 1
+        val x2 = x1 + w1 + settings.dx
+        val w2 = settings.treadling_visible * settings.dx + 1
+
+        val y1 = border
+        val h1 = settings.threading_visible * settings.dy + 1
+        val y2 = y1 + h1 + settings.dx
+        val h2 = py * settings.dy + 1
+
+        threadingView.bounds = Rectangle(x1, y1, w1, h1)
+        tieupView.bounds = Rectangle(x2, y1, w2, h1)
+        treadlingView.bounds = Rectangle(x2, y2, w2, h2)
+        patternView.bounds = Rectangle(x1, y2, w1, h2)
+
+        threadingView.updateMax(px, settings.threading_visible)
+        tieupView.updateMax(settings.treadling_visible, settings.threading_visible)
+        treadlingView.updateMax(settings.treadling_visible, py)
+        patternView.updateMax(px, py)
     }
 }
 
