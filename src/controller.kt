@@ -2,6 +2,7 @@ import javax.swing.JFrame
 import java.awt.EventQueue
 import java.awt.Rectangle
 import java.awt.event.*
+import javax.swing.UIManager
 
 interface UICallback {
     fun toggleThreading(i: Int, j: Int)
@@ -17,10 +18,10 @@ class Dbweave(title: String) : JFrame() {
     val model = Model(500, 500)
 
     init {
-        for (i in 0 until model.threading.size) {
-            model.threading[i, i % 8] = true
+        for (i in 0 until 70) {
+            model.threading[i] = i % 8
         }
-        for (j in 0 until model.treadling.size) {
+        for (j in 0 until 40) {
             model.treadling[j % 8, j] = true
         }
         for (i in 0 until 8) {
@@ -28,13 +29,17 @@ class Dbweave(title: String) : JFrame() {
             model.tieup[i, (i + 1) % 8] = true
             model.tieup[i, (i + 2) % 8] = true
         }
+        model.update_range()
+        model.recalcPattern()
     }
 
     val callback: UICallback = object : UICallback {
         override fun toggleThreading(i: Int, j: Int) {
-            model.threading[i, j] = model.threading[i] != j
+            model.threading[i] = j
             threadingView.invalidate()
             threadingView.repaint()
+            model.update_range()
+            model.recalcPattern()
             patternView.invalidate()
             patternView.repaint()
         }
@@ -43,6 +48,8 @@ class Dbweave(title: String) : JFrame() {
             model.tieup[i, j] = !model.tieup[i, j]
             tieupView.invalidate()
             tieupView.repaint()
+            model.update_range()
+            model.recalcPattern()
             patternView.invalidate()
             patternView.repaint()
         }
@@ -51,19 +58,35 @@ class Dbweave(title: String) : JFrame() {
             model.treadling[i, j] = !model.treadling[i, j]
             treadlingView.invalidate()
             treadlingView.repaint()
+            model.update_range()
+            println("warp " + model.warp_range)
+            println("weft " + model.weft_range)
+            model.recalcPattern()
             patternView.invalidate()
             patternView.repaint()
         }
 
         override fun togglePattern(i: Int, j: Int) {
-            // TODO
+            model.pattern[i, j] = !model.pattern[i, j]
+            patternView.invalidate()
+            patternView.repaint()
+            model.recalcFromPattern()
+            model.update_range()
+            println("warp " + model.warp_range)
+            println("weft " + model.weft_range)
+            threadingView.invalidate()
+            threadingView.repaint()
+            tieupView.invalidate()
+            tieupView.repaint()
+            treadlingView.invalidate()
+            treadlingView.repaint()
         }
     }
 
     val threadingView = ThreadingView(model.threading, callback, settings, VerticalPainter())
     val tieupView = TieupView(model.tieup, callback, settings, CrossPainter())
     val treadlingView = TreadlingView(model.treadling, callback, settings, DotPainter())
-    val patternView = PatternView(model, callback, settings, FillPainter())
+    val patternView = PatternView(model.pattern, callback, settings, FillPainter())
 
     init {
         createUI(title)
@@ -101,16 +124,16 @@ class Dbweave(title: String) : JFrame() {
         val border = 2
         val cx = (contentPane.width - 2 * border) / settings.dx
         val cy = (contentPane.height - 2 * border) / settings.dy
-        val px = cx - settings.treadling_visible - 1
-        val py = cy - settings.threading_visible - 1
+        val px = cx - settings.treadlingVisible - 1
+        val py = cy - settings.threadingVisible - 1
 
         val x1 = border
         val w1 = px * settings.dx + 1
         val x2 = x1 + w1 + settings.dx
-        val w2 = settings.treadling_visible * settings.dx + 1
+        val w2 = settings.treadlingVisible * settings.dx + 1
 
         val y1 = border
-        val h1 = settings.threading_visible * settings.dy + 1
+        val h1 = settings.threadingVisible * settings.dy + 1
         val y2 = y1 + h1 + settings.dx
         val h2 = py * settings.dy + 1
 
@@ -119,14 +142,17 @@ class Dbweave(title: String) : JFrame() {
         treadlingView.bounds = Rectangle(x2, y2, w2, h2)
         patternView.bounds = Rectangle(x1, y2, w1, h2)
 
-        threadingView.updateMax(px, settings.threading_visible)
-        tieupView.updateMax(settings.treadling_visible, settings.threading_visible)
-        treadlingView.updateMax(settings.treadling_visible, py)
+        threadingView.updateMax(px, settings.threadingVisible)
+        tieupView.updateMax(settings.treadlingVisible, settings.threadingVisible)
+        treadlingView.updateMax(settings.treadlingVisible, py)
         patternView.updateMax(px, py)
+
+        model.update_range()
     }
 }
 
 private fun createAndShowGUI() {
+    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
     val frame = Dbweave("DB-WEAVE")
     frame.isVisible = true
 }

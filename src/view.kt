@@ -3,14 +3,13 @@ import java.awt.Graphics
 import java.awt.Rectangle
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import javax.swing.BorderFactory
 import javax.swing.JComponent
 
 class ViewSettings {
     var dx = 12
     var dy = 12
-    var threading_visible = 12
-    var treadling_visible = 12
+    var threadingVisible = 12
+    var treadlingVisible = 12
 }
 
 interface Painter {
@@ -80,10 +79,10 @@ abstract class BaseView(val settings: ViewSettings) : JComponent() {
     }
 }
 
-class ThreadingView(val data: SingleGrid, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings) {
+class ThreadingView(val threading: Threading, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings) {
     init {
         maxi = 50
-        maxj = settings.threading_visible
+        maxj = settings.threadingVisible
         addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val i = e.x / settings.dx
@@ -97,16 +96,16 @@ class ThreadingView(val data: SingleGrid, val callback: UICallback, settings: Vi
         paintGrid(p0)
         p0.color = Color.DARK_GRAY
         for (i in 0 until maxi) {
-            val j = data[i]
+            val j = threading[i]
             if (j == -1) continue
             painter.paintCell(p0, cellBounds(i, j))
         }
     }
 }
 
-class TreadlingView(val data: Grid, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings) {
+class TreadlingView(val treadling: Treadling, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings) {
     init {
-        maxi = settings.treadling_visible
+        maxi = settings.treadlingVisible
         maxj = 50
         addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
@@ -122,7 +121,7 @@ class TreadlingView(val data: Grid, val callback: UICallback, settings: ViewSett
         p0.color = Color.DARK_GRAY
         for (i in 0 until maxi) {
             for (j in 0 until maxj) {
-                if (data[i, j]) {
+                if (treadling[i, j]) {
                     painter.paintCell(p0, cellBounds(i, j))
                 }
             }
@@ -130,10 +129,10 @@ class TreadlingView(val data: Grid, val callback: UICallback, settings: ViewSett
     }
 }
 
-class TieupView(val data: Grid, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings) {
+class TieupView(val tieup: Tieup, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings) {
     init {
-        maxi = settings.treadling_visible
-        maxj = settings.threading_visible
+        maxi = settings.treadlingVisible
+        maxj = settings.threadingVisible
         addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val i = e.x / settings.dx
@@ -148,7 +147,7 @@ class TieupView(val data: Grid, val callback: UICallback, settings: ViewSettings
         p0.color = Color.BLACK
         for (i in 0 until maxi) {
             for (j in 0 until maxj) {
-                if (data[i, j]) {
+                if (tieup[i, j]) {
                     painter.paintCell(p0, cellBounds(i, j))
                 }
             }
@@ -156,7 +155,7 @@ class TieupView(val data: Grid, val callback: UICallback, settings: ViewSettings
     }
 }
 
-class PatternView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings) {
+class PatternView(val pattern: Pattern, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings) {
     init {
         maxi = 50
         maxj = 50
@@ -174,14 +173,8 @@ class PatternView(val model: Model, val callback: UICallback, settings: ViewSett
         p0.color = Color.DARK_GRAY
         for (i in 0 until maxi) {
             for (j in 0 until maxj) {
-                val threading = model.threading[i]
-                if (threading == -1) continue
-                for (m in 0 until model.treadling.size) {
-                    if (!model.treadling[m, j]) continue
-                    if (model.tieup[m, threading]) {
-                        painter.paintCell(p0, cellBounds(i, j))
-                        break
-                    }
+                if (pattern[i, j]) {
+                    painter.paintCell(p0, cellBounds(i, j))
                 }
             }
         }
