@@ -3,6 +3,7 @@ import java.awt.EventQueue
 import java.awt.FocusTraversalPolicy
 import java.awt.Rectangle
 import java.awt.event.*
+import javax.swing.Timer
 import javax.swing.UIManager
 
 interface UICallback {
@@ -120,6 +121,12 @@ class Dbweave(title: String) : JFrame() {
                 arrangeComponents()
             }
         })
+
+        Timer(500, {
+            if (focusOwner is BaseView) {
+                (focusOwner as BaseView).toggleCursorState()
+            }
+        }).start()
 
         isFocusCycleRoot = true
         focusTraversalPolicy = DbweaveFocusTraversalPolicy(threadingView, tieupView, patternView, treadlingView)

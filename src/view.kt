@@ -18,6 +18,8 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
     var w = 100
     var h = 100
 
+    var cursorState = true
+
     init {
         isFocusable = true
         addMouseListener(object : MouseAdapter() {
@@ -105,22 +107,29 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
 
     fun paintSelection(p0: Graphics) {
         if (!hasFocus()) return;
-        if (p0 !is Graphics2D) return
-        p0.color = Color.RED
-        p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
+        val p = p0.create()
+        if (p !is Graphics2D) return
+        p.color = Color.RED
+        p.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
 
         if (!selection.empty) {
-            p0.color = Color.ORANGE
-            p0.stroke = BasicStroke(3.0f)
+            p.color = Color.ORANGE
+            p.stroke = BasicStroke(3.0f, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_BEVEL, 0.0f, floatArrayOf(9.0f), if (cursorState) 0.0f else 4.5f);
             val bl = selection.bottomLeft()
             val tr = selection.topRight()
             val w = tr.i - bl.i + 1
             val h = tr.j - bl.j + 1
-            p0.drawRect(bl.i * settings.dx, (maxj - tr.j - 1) * settings.dy, w * settings.dx, h * settings.dy)
+            p.drawRect(bl.i * settings.dx, (maxj - tr.j - 1) * settings.dy, w * settings.dx, h * settings.dy)
         }
-        p0.color = Color.RED
-        p0.stroke = BasicStroke(3.0f)
-        p0.drawRect(selection.pos.i * settings.dx, (maxj - selection.pos.j - 1) * settings.dy, settings.dx, settings.dy)
+        p.color = if (cursorState) Color.RED else Color.ORANGE
+        p.stroke = BasicStroke(3.0f)
+        p.drawRect(selection.pos.i * settings.dx, (maxj - selection.pos.j - 1) * settings.dy, settings.dx, settings.dy)
+        p.dispose()
+    }
+
+    fun toggleCursorState() {
+        cursorState = !cursorState
+        repaint()
     }
 }
 
@@ -133,6 +142,16 @@ class ThreadingView(val threading: Threading, val callback: UICallback, settings
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 callback.toggleThreading(i, j)
+            }
+        })
+        addKeyListener(object : KeyAdapter() {
+            override fun keyReleased(e: KeyEvent?) {
+                super.keyReleased(e)
+                if (e == null) return
+                if (e.keyCode == KeyEvent.VK_SPACE) {
+                    callback.toggleThreading(selection.pos.i, selection.pos.j)
+                    selection.setLocation(selection.pos.i, selection.pos.j + 1)
+                }
             }
         })
     }
@@ -163,6 +182,16 @@ class TreadlingView(val treadling: Treadling, val callback: UICallback, settings
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 callback.toggleTreadling(i, j)
+            }
+        })
+        addKeyListener(object : KeyAdapter() {
+            override fun keyReleased(e: KeyEvent?) {
+                super.keyReleased(e)
+                if (e == null) return
+                if (e.keyCode == KeyEvent.VK_SPACE) {
+                    callback.toggleTreadling(selection.pos.i, selection.pos.j)
+                    selection.setLocation(selection.pos.i, selection.pos.j + 1)
+                }
             }
         })
     }
@@ -197,6 +226,16 @@ class TieupView(val tieup: Tieup, val callback: UICallback, settings: ViewSettin
                 callback.toggleTieup(i, j)
             }
         })
+        addKeyListener(object : KeyAdapter() {
+            override fun keyReleased(e: KeyEvent?) {
+                super.keyReleased(e)
+                if (e == null) return
+                if (e.keyCode == KeyEvent.VK_SPACE) {
+                    callback.toggleTieup(selection.pos.i, selection.pos.j)
+                    selection.setLocation(selection.pos.i, selection.pos.j + 1)
+                }
+            }
+        })
     }
 
     override fun paintComponent(p0: Graphics) {
@@ -227,6 +266,16 @@ class PatternView(val pattern: Pattern, val callback: UICallback, settings: View
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 callback.togglePattern(i, j)
+            }
+        })
+        addKeyListener(object : KeyAdapter() {
+            override fun keyReleased(e: KeyEvent?) {
+                super.keyReleased(e)
+                if (e == null) return
+                if (e.keyCode == KeyEvent.VK_SPACE) {
+                    callback.togglePattern(selection.pos.i, selection.pos.j)
+                    selection.setLocation(selection.pos.i, selection.pos.j + 1)
+                }
             }
         })
     }
