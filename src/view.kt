@@ -1,11 +1,11 @@
 import java.awt.Color
 import java.awt.Graphics
 import java.awt.Rectangle
-import java.awt.event.FocusAdapter
-import java.awt.event.FocusEvent
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
+import java.awt.event.*
 import javax.swing.JComponent
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 class ViewSettings {
     var dx = 12
@@ -251,6 +251,41 @@ class PatternView(val pattern: Pattern, val callback: UICallback, settings: View
                 repaint()
             }
         })
+        addKeyListener(object: KeyAdapter() {
+            override fun keyReleased(e: KeyEvent?) {
+                super.keyReleased(e)
+                if (e == null) return
+                if (e.keyCode == KeyEvent.VK_LEFT) {
+                    if (e.isShiftDown) {
+                        pattern.selection.addLocation(max(pattern.selection.pos.i - 1, 0), pattern.selection.pos.j)
+                    } else {
+                        pattern.selection.setLocation(max(pattern.selection.pos.i - 1, 0), pattern.selection.pos.j)
+                    }
+                    repaint()
+                } else if (e.keyCode == KeyEvent.VK_RIGHT) {
+                    if (e.isShiftDown) {
+                        pattern.selection.addLocation(min(pattern.selection.pos.i + 1, pattern.width - 1), pattern.selection.pos.j)
+                    } else {
+                        pattern.selection.setLocation(min(pattern.selection.pos.i + 1, pattern.width - 1), pattern.selection.pos.j)
+                    }
+                    repaint()
+                } else if (e.keyCode == KeyEvent.VK_UP) {
+                    if (e.isShiftDown) {
+                        pattern.selection.addLocation(pattern.selection.pos.i, min(pattern.selection.pos.j + 1, pattern.height - 1))
+                    } else {
+                        pattern.selection.setLocation(pattern.selection.pos.i, min(pattern.selection.pos.j + 1, pattern.height - 1))
+                    }
+                    repaint()
+                } else if (e.keyCode == KeyEvent.VK_DOWN) {
+                    if (e.isShiftDown) {
+                        pattern.selection.addLocation(pattern.selection.pos.i, max(pattern.selection.pos.j - 1, 0))
+                    } else {
+                        pattern.selection.setLocation(pattern.selection.pos.i, max(pattern.selection.pos.j - 1, 0))
+                    }
+                    repaint()
+                }
+            }
+        })
     }
 
     override fun paintComponent(p0: Graphics) {
@@ -267,6 +302,16 @@ class PatternView(val pattern: Pattern, val callback: UICallback, settings: View
         if (hasFocus()) {
             p0.color = Color.RED
             p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
+
+            val sel = pattern.selection
+            if (!sel.empty) {
+                val bl = sel.bottomLeft()
+                val tr = sel.topRight()
+                val w = tr.i - bl.i + 1
+                val h = tr.j - bl.j + 1
+                p0.drawRect(bl.i * settings.dx, (maxj - tr.j - 1) * settings.dy, w * settings.dx, h * settings.dy)
+            }
+            p0.drawRect(sel.pos.i * settings.dx, (maxj - sel.pos.j - 1) * settings.dy, settings.dx, settings.dy)
         }
     }
 }

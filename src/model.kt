@@ -1,8 +1,38 @@
 import kotlin.math.max
 import kotlin.math.min
 
+data class Coord(var i: Int, var j: Int)
+
+class Selection {
+    var orig = Coord(0, 0)
+    var pos = Coord(0, 0)
+
+    val empty: Boolean
+        get() = orig == pos
+
+    fun bottomLeft() = Coord(min(orig.i, pos.i), min(orig.j, pos.j))
+    fun topRight() = Coord(max(orig.i, pos.i), max(orig.j, pos.j))
+
+    fun setLocation(i: Int, j: Int) {
+        orig = Coord(i, j)
+        pos = Coord(i, j)
+    }
+
+    fun addLocation(i: Int, j: Int) {
+        pos.i = i
+        pos.j = j
+    }
+
+    override fun toString(): String {
+        return "Selection(orig=$orig, pos=$pos)"
+    }
+
+}
+
 class Threading(width: Int) {
     private val data = IntArray(width) { -1 }
+
+    val selection = Selection()
 
     val width: Int
         get() = this.data.size
@@ -26,6 +56,8 @@ class Threading(width: Int) {
 
 class Tieup() {
     private val data = LongArray(Long.SIZE_BITS)
+
+    val selection = Selection()
 
     val width: Int
         get() = Long.SIZE_BITS
@@ -68,6 +100,8 @@ class Tieup() {
 class Treadling(height: Int) {
     private val data = LongArray(height)
 
+    val selection = Selection()
+
     val width: Int
         get() = Long.SIZE_BITS
 
@@ -103,6 +137,8 @@ class Treadling(height: Int) {
 class Pegplan(height: Int) {
     private val data = LongArray(height)
 
+    val selection = Selection()
+
     val width: Int
         get() = Long.SIZE_BITS
 
@@ -137,6 +173,8 @@ class Pegplan(height: Int) {
 
 class Pattern(var width: Int, var height: Int) {
     private val data = ByteArray(width * height)
+
+    val selection = Selection()
 
     private fun index(i: Int, j: Int): Int {
         return i +  j * width
