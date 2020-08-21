@@ -1,5 +1,6 @@
 import javax.swing.JFrame
 import java.awt.EventQueue
+import java.awt.FocusTraversalPolicy
 import java.awt.Rectangle
 import java.awt.event.*
 import javax.swing.UIManager
@@ -36,6 +37,7 @@ class Dbweave(title: String) : JFrame() {
     val callback: UICallback = object : UICallback {
         override fun toggleThreading(i: Int, j: Int) {
             model.threading[i] = j
+            model.threading.selection.setLocation(i, j)
             threadingView.repaint()
             model.updateRange()
             model.recalcPattern()
@@ -46,6 +48,7 @@ class Dbweave(title: String) : JFrame() {
 
         override fun toggleTieup(i: Int, j: Int) {
             model.tieup[i, j] = !model.tieup[i, j]
+            model.tieup.selection.setLocation(i, j)
             tieupView.repaint()
             model.updateRange()
             model.recalcPattern()
@@ -56,6 +59,7 @@ class Dbweave(title: String) : JFrame() {
 
         override fun toggleTreadling(i: Int, j: Int) {
             model.treadling[i, j] = !model.treadling[i, j]
+            model.treadling.selection.setLocation(i, j)
             treadlingView.repaint()
             model.recalcPattern()
             patternView.repaint()
@@ -65,6 +69,7 @@ class Dbweave(title: String) : JFrame() {
 
         override fun togglePattern(i: Int, j: Int) {
             model.pattern[i, j] = !model.pattern[i, j]
+            model.pattern.selection.setLocation(i, j)
             patternView.repaint()
             model.recalcFromPattern()
             threadingView.repaint()
@@ -93,6 +98,11 @@ class Dbweave(title: String) : JFrame() {
 
         layout = null
 
+        threadingView.updateSize(model.threading.width, model.threading.height)
+        tieupView.updateSize(model.tieup.width, model.tieup.height)
+        treadlingView.updateSize(model.treadling.width, model.treadling.height)
+        patternView.updateSize(model.pattern.width, model.pattern.height)
+
         add(threadingView)
         add(tieupView)
         add(patternView)
@@ -110,6 +120,9 @@ class Dbweave(title: String) : JFrame() {
                 arrangeComponents()
             }
         })
+
+        isFocusCycleRoot = true
+        focusTraversalPolicy = DbweaveFocusTraversalPolicy(threadingView, tieupView, patternView, treadlingView)
     }
 
     private fun arrangeComponents() {

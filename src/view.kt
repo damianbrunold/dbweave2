@@ -1,9 +1,6 @@
-import java.awt.Color
-import java.awt.Graphics
-import java.awt.Rectangle
+import java.awt.*
 import java.awt.event.*
 import javax.swing.JComponent
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
@@ -14,54 +11,80 @@ class ViewSettings {
     var treadlingVisible = 12
 }
 
-interface Painter {
-    fun paintCell(p0: Graphics, bounds: Rectangle)
-}
-
-class FillPainter : Painter {
-    override fun paintCell(p0: Graphics, bounds: Rectangle) {
-        with (bounds) {
-            p0.fillRect(x + 2, y + 2, width - 3, height - 3)
-        }
-    }
-}
-
-class CrossPainter : Painter {
-    override fun paintCell(p0: Graphics, bounds: Rectangle) {
-        with(bounds) {
-            p0.drawLine(x + 2, y + 2, x + width - 2, y + height - 2)
-            p0.drawLine(x + 2, y + height - 2, x + width - 2, y + 2)
-        }
-    }
-}
-
-class VerticalPainter : Painter {
-    override fun paintCell(p0: Graphics, bounds: Rectangle) {
-        with(bounds) {
-            p0.drawLine(x + width / 2 - 1, y + 2, x + width / 2 - 1, y + height - 2)
-            p0.drawLine(x + width / 2, y + 2, x + width / 2, y + height - 2)
-            p0.drawLine(x + width / 2 + 1, y + 2, x + width / 2 + 1, y + height - 2)
-        }
-    }
-}
-
-class DotPainter : Painter {
-    override fun paintCell(p0: Graphics, bounds: Rectangle) {
-        with (bounds) {
-            p0.drawLine(x + width / 2 - 1, y + height / 2 - 1, x + width / 2 + 1, y + height / 2 - 1)
-            p0.drawLine(x + width / 2 - 1, y + height / 2 + 0, x + width / 2 + 1, y + height / 2 + 0)
-            p0.drawLine(x + width / 2 - 1, y + height / 2 + 1, x + width / 2 + 1, y + height / 2 + 1)
-        }
-    }
-}
-
-abstract class BaseView(val settings: ViewSettings) : JComponent() {
+abstract class BaseView(val settings: ViewSettings, val selection: Selection) : JComponent() {
     var maxi: Int = 10
     var maxj: Int = 10
 
+    var w = 100
+    var h = 100
+
+    init {
+        isFocusable = true
+        addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent?) {
+                super.mouseClicked(e)
+                requestFocusInWindow()
+            }
+        })
+        addFocusListener(object: FocusAdapter() {
+            override fun focusGained(e: FocusEvent?) {
+                super.focusGained(e)
+                repaint()
+            }
+
+            override fun focusLost(e: FocusEvent?) {
+                super.focusLost(e)
+                repaint()
+            }
+        })
+        addKeyListener(object: KeyAdapter() {
+            override fun keyPressed(e: KeyEvent?) {
+                super.keyPressed(e)
+                if (e == null) return
+                if (e.keyCode == KeyEvent.VK_LEFT) {
+                    if (e.isShiftDown) {
+                        selection.addLocation(max(selection.pos.i - 1, 0), selection.pos.j)
+                    } else {
+                        selection.setLocation(max(selection.pos.i - 1, 0), selection.pos.j)
+                    }
+                    repaint()
+                } else if (e.keyCode == KeyEvent.VK_RIGHT) {
+                    if (e.isShiftDown) {
+                        selection.addLocation(min(selection.pos.i + 1, w - 1), selection.pos.j)
+                    } else {
+                        selection.setLocation(min(selection.pos.i + 1, w - 1), selection.pos.j)
+                    }
+                    repaint()
+                } else if (e.keyCode == KeyEvent.VK_UP) {
+                    if (e.isShiftDown) {
+                        selection.addLocation(selection.pos.i, min(selection.pos.j + 1, h - 1))
+                    } else {
+                        selection.setLocation(selection.pos.i, min(selection.pos.j + 1, h - 1))
+                    }
+                    repaint()
+                } else if (e.keyCode == KeyEvent.VK_DOWN) {
+                    if (e.isShiftDown) {
+                        selection.addLocation(selection.pos.i, max(selection.pos.j - 1, 0))
+                    } else {
+                        selection.setLocation(selection.pos.i, max(selection.pos.j - 1, 0))
+                    }
+                    repaint()
+                } else if (e.keyCode == KeyEvent.VK_ENTER) {
+                    KeyboardFocusManager.getCurrentKeyboardFocusManager().focusNextComponent()
+                }
+            }
+        })
+       
+    }
+    
     fun updateMax(i: Int, j: Int) {
         maxi = i
         maxj = j
+    }
+
+    fun updateSize(width: Int, height: Int) {
+        w = width
+        h = height
     }
 
     fun paintGrid(p0: Graphics) {
@@ -79,34 +102,37 @@ abstract class BaseView(val settings: ViewSettings) : JComponent() {
     fun cellBounds(i: Int, j: Int): Rectangle {
         return Rectangle(i * settings.dx, (maxj - j - 1) * settings.dy, settings.dx, settings.dy)
     }
+
+    fun paintSelection(p0: Graphics) {
+        if (!hasFocus()) return;
+        if (p0 !is Graphics2D) return
+        p0.color = Color.RED
+        p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
+
+        if (!selection.empty) {
+            p0.color = Color.ORANGE
+            p0.stroke = BasicStroke(3.0f)
+            val bl = selection.bottomLeft()
+            val tr = selection.topRight()
+            val w = tr.i - bl.i + 1
+            val h = tr.j - bl.j + 1
+            p0.drawRect(bl.i * settings.dx, (maxj - tr.j - 1) * settings.dy, w * settings.dx, h * settings.dy)
+        }
+        p0.color = Color.RED
+        p0.stroke = BasicStroke(3.0f)
+        p0.drawRect(selection.pos.i * settings.dx, (maxj - selection.pos.j - 1) * settings.dy, settings.dx, settings.dy)
+    }
 }
 
-class ThreadingView(val threading: Threading, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings) {
+class ThreadingView(val threading: Threading, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings, threading.selection) {
     init {
         maxi = 50
         maxj = settings.threadingVisible
-        isFocusable = true
         addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 callback.toggleThreading(i, j)
-            }
-
-            override fun mouseClicked(e: MouseEvent?) {
-                super.mouseClicked(e)
-                requestFocusInWindow()
-            }
-        })
-        addFocusListener(object: FocusAdapter() {
-            override fun focusGained(e: FocusEvent?) {
-                super.focusGained(e)
-                repaint()
-            }
-
-            override fun focusLost(e: FocusEvent?) {
-                super.focusLost(e)
-                repaint()
             }
         })
     }
@@ -124,35 +150,19 @@ class ThreadingView(val threading: Threading, val callback: UICallback, settings
             p0.color = Color.RED
             p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
         }
+        paintSelection(p0)
     }
 }
 
-class TreadlingView(val treadling: Treadling, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings) {
+class TreadlingView(val treadling: Treadling, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings, treadling.selection) {
     init {
         maxi = settings.treadlingVisible
         maxj = 50
-        isFocusable = true
         addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 callback.toggleTreadling(i, j)
-            }
-
-            override fun mouseClicked(e: MouseEvent?) {
-                super.mouseClicked(e)
-                requestFocusInWindow()
-            }
-        })
-        addFocusListener(object: FocusAdapter() {
-            override fun focusGained(e: FocusEvent?) {
-                super.focusGained(e)
-                repaint()
-            }
-
-            override fun focusLost(e: FocusEvent?) {
-                super.focusLost(e)
-                repaint()
             }
         })
     }
@@ -172,35 +182,19 @@ class TreadlingView(val treadling: Treadling, val callback: UICallback, settings
             p0.color = Color.RED
             p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
         }
+        paintSelection(p0)
     }
 }
 
-class TieupView(val tieup: Tieup, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings) {
+class TieupView(val tieup: Tieup, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings, tieup.selection) {
     init {
         maxi = settings.treadlingVisible
         maxj = settings.threadingVisible
-        isFocusable = true
         addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 callback.toggleTieup(i, j)
-            }
-
-            override fun mouseClicked(e: MouseEvent?) {
-                super.mouseClicked(e)
-                requestFocusInWindow()
-            }
-        })
-        addFocusListener(object: FocusAdapter() {
-            override fun focusGained(e: FocusEvent?) {
-                super.focusGained(e)
-                repaint()
-            }
-
-            override fun focusLost(e: FocusEvent?) {
-                super.focusLost(e)
-                repaint()
             }
         })
     }
@@ -220,70 +214,19 @@ class TieupView(val tieup: Tieup, val callback: UICallback, settings: ViewSettin
             p0.color = Color.RED
             p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
         }
+        paintSelection(p0)
     }
 }
 
-class PatternView(val pattern: Pattern, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings) {
+class PatternView(val pattern: Pattern, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings, pattern.selection) {
     init {
         maxi = 50
         maxj = 50
-        isFocusable = true
         addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 callback.togglePattern(i, j)
-            }
-
-            override fun mouseClicked(e: MouseEvent?) {
-                super.mouseClicked(e)
-                requestFocusInWindow()
-            }
-        })
-        addFocusListener(object: FocusAdapter() {
-            override fun focusGained(e: FocusEvent?) {
-                super.focusGained(e)
-                repaint()
-            }
-
-            override fun focusLost(e: FocusEvent?) {
-                super.focusLost(e)
-                repaint()
-            }
-        })
-        addKeyListener(object: KeyAdapter() {
-            override fun keyReleased(e: KeyEvent?) {
-                super.keyReleased(e)
-                if (e == null) return
-                if (e.keyCode == KeyEvent.VK_LEFT) {
-                    if (e.isShiftDown) {
-                        pattern.selection.addLocation(max(pattern.selection.pos.i - 1, 0), pattern.selection.pos.j)
-                    } else {
-                        pattern.selection.setLocation(max(pattern.selection.pos.i - 1, 0), pattern.selection.pos.j)
-                    }
-                    repaint()
-                } else if (e.keyCode == KeyEvent.VK_RIGHT) {
-                    if (e.isShiftDown) {
-                        pattern.selection.addLocation(min(pattern.selection.pos.i + 1, pattern.width - 1), pattern.selection.pos.j)
-                    } else {
-                        pattern.selection.setLocation(min(pattern.selection.pos.i + 1, pattern.width - 1), pattern.selection.pos.j)
-                    }
-                    repaint()
-                } else if (e.keyCode == KeyEvent.VK_UP) {
-                    if (e.isShiftDown) {
-                        pattern.selection.addLocation(pattern.selection.pos.i, min(pattern.selection.pos.j + 1, pattern.height - 1))
-                    } else {
-                        pattern.selection.setLocation(pattern.selection.pos.i, min(pattern.selection.pos.j + 1, pattern.height - 1))
-                    }
-                    repaint()
-                } else if (e.keyCode == KeyEvent.VK_DOWN) {
-                    if (e.isShiftDown) {
-                        pattern.selection.addLocation(pattern.selection.pos.i, max(pattern.selection.pos.j - 1, 0))
-                    } else {
-                        pattern.selection.setLocation(pattern.selection.pos.i, max(pattern.selection.pos.j - 1, 0))
-                    }
-                    repaint()
-                }
             }
         })
     }
@@ -299,19 +242,6 @@ class PatternView(val pattern: Pattern, val callback: UICallback, settings: View
                 }
             }
         }
-        if (hasFocus()) {
-            p0.color = Color.RED
-            p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
-
-            val sel = pattern.selection
-            if (!sel.empty) {
-                val bl = sel.bottomLeft()
-                val tr = sel.topRight()
-                val w = tr.i - bl.i + 1
-                val h = tr.j - bl.j + 1
-                p0.drawRect(bl.i * settings.dx, (maxj - tr.j - 1) * settings.dy, w * settings.dx, h * settings.dy)
-            }
-            p0.drawRect(sel.pos.i * settings.dx, (maxj - sel.pos.j - 1) * settings.dy, settings.dx, settings.dy)
-        }
+        paintSelection(p0)
     }
 }

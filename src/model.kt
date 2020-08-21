@@ -37,6 +37,9 @@ class Threading(width: Int) {
     val width: Int
         get() = this.data.size
 
+    val height: Int
+        get() = Int.SIZE_BITS
+
     operator fun get(i: Int): Int {
         return data[i]
     }
