@@ -147,6 +147,7 @@ private fun createAndShowGUI() {
     UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
     val frame = Dbweave("DB-WEAVE")
     frame.isVisible = true
+    frame.patternView.requestFocus()
 }
 
 fun main() {

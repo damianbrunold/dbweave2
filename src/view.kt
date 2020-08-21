@@ -1,6 +1,8 @@
 import java.awt.Color
 import java.awt.Graphics
 import java.awt.Rectangle
+import java.awt.event.FocusAdapter
+import java.awt.event.FocusEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.JComponent
@@ -83,11 +85,28 @@ class ThreadingView(val threading: Threading, val callback: UICallback, settings
     init {
         maxi = 50
         maxj = settings.threadingVisible
+        isFocusable = true
         addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 callback.toggleThreading(i, j)
+            }
+
+            override fun mouseClicked(e: MouseEvent?) {
+                super.mouseClicked(e)
+                requestFocusInWindow()
+            }
+        })
+        addFocusListener(object: FocusAdapter() {
+            override fun focusGained(e: FocusEvent?) {
+                super.focusGained(e)
+                repaint()
+            }
+
+            override fun focusLost(e: FocusEvent?) {
+                super.focusLost(e)
+                repaint()
             }
         })
     }
@@ -101,6 +120,10 @@ class ThreadingView(val threading: Threading, val callback: UICallback, settings
             if (j == -1) continue
             painter.paintCell(p0, cellBounds(i, j))
         }
+        if (hasFocus()) {
+            p0.color = Color.RED
+            p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
+        }
     }
 }
 
@@ -108,11 +131,28 @@ class TreadlingView(val treadling: Treadling, val callback: UICallback, settings
     init {
         maxi = settings.treadlingVisible
         maxj = 50
+        isFocusable = true
         addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 callback.toggleTreadling(i, j)
+            }
+
+            override fun mouseClicked(e: MouseEvent?) {
+                super.mouseClicked(e)
+                requestFocusInWindow()
+            }
+        })
+        addFocusListener(object: FocusAdapter() {
+            override fun focusGained(e: FocusEvent?) {
+                super.focusGained(e)
+                repaint()
+            }
+
+            override fun focusLost(e: FocusEvent?) {
+                super.focusLost(e)
+                repaint()
             }
         })
     }
@@ -128,6 +168,10 @@ class TreadlingView(val treadling: Treadling, val callback: UICallback, settings
                 }
             }
         }
+        if (hasFocus()) {
+            p0.color = Color.RED
+            p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
+        }
     }
 }
 
@@ -135,11 +179,28 @@ class TieupView(val tieup: Tieup, val callback: UICallback, settings: ViewSettin
     init {
         maxi = settings.treadlingVisible
         maxj = settings.threadingVisible
+        isFocusable = true
         addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 callback.toggleTieup(i, j)
+            }
+
+            override fun mouseClicked(e: MouseEvent?) {
+                super.mouseClicked(e)
+                requestFocusInWindow()
+            }
+        })
+        addFocusListener(object: FocusAdapter() {
+            override fun focusGained(e: FocusEvent?) {
+                super.focusGained(e)
+                repaint()
+            }
+
+            override fun focusLost(e: FocusEvent?) {
+                super.focusLost(e)
+                repaint()
             }
         })
     }
@@ -155,6 +216,10 @@ class TieupView(val tieup: Tieup, val callback: UICallback, settings: ViewSettin
                 }
             }
         }
+        if (hasFocus()) {
+            p0.color = Color.RED
+            p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
+        }
     }
 }
 
@@ -162,11 +227,28 @@ class PatternView(val pattern: Pattern, val callback: UICallback, settings: View
     init {
         maxi = 50
         maxj = 50
+        isFocusable = true
         addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 callback.togglePattern(i, j)
+            }
+
+            override fun mouseClicked(e: MouseEvent?) {
+                super.mouseClicked(e)
+                requestFocusInWindow()
+            }
+        })
+        addFocusListener(object: FocusAdapter() {
+            override fun focusGained(e: FocusEvent?) {
+                super.focusGained(e)
+                repaint()
+            }
+
+            override fun focusLost(e: FocusEvent?) {
+                super.focusLost(e)
+                repaint()
             }
         })
     }
@@ -181,6 +263,10 @@ class PatternView(val pattern: Pattern, val callback: UICallback, settings: View
                     painter.paintCell(p0, cellBounds(i, j))
                 }
             }
+        }
+        if (hasFocus()) {
+            p0.color = Color.RED
+            p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
         }
     }
 }
