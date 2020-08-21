@@ -93,6 +93,7 @@ class ThreadingView(val threading: Threading, val callback: UICallback, settings
     }
 
     override fun paintComponent(p0: Graphics) {
+        super.paintComponent(p0)
         paintGrid(p0)
         p0.color = Color.DARK_GRAY
         for (i in 0 until maxi) {
@@ -117,6 +118,7 @@ class TreadlingView(val treadling: Treadling, val callback: UICallback, settings
     }
 
     override fun paintComponent(p0: Graphics) {
+        super.paintComponent(p0)
         paintGrid(p0)
         p0.color = Color.DARK_GRAY
         for (i in 0 until maxi) {
@@ -143,6 +145,7 @@ class TieupView(val tieup: Tieup, val callback: UICallback, settings: ViewSettin
     }
 
     override fun paintComponent(p0: Graphics) {
+        super.paintComponent(p0)
         paintGrid(p0)
         p0.color = Color.BLACK
         for (i in 0 until maxi) {
@@ -169,6 +172,7 @@ class PatternView(val pattern: Pattern, val callback: UICallback, settings: View
     }
 
     override fun paintComponent(p0: Graphics) {
+        super.paintComponent(p0)
         paintGrid(p0)
         p0.color = Color.DARK_GRAY
         for (i in 0 until maxi) {

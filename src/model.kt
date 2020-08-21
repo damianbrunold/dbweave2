@@ -210,7 +210,7 @@ class Model(width: Int, height: Int) {
     var warp_range = ThreadRange(0, 0)
     var weft_range = ThreadRange(0, 0)
 
-    fun update_range() {
+    fun updateRange() {
         warp_range = get_warp_range()
         weft_range = get_weft_range()
     }
@@ -238,6 +238,7 @@ class Model(width: Int, height: Int) {
     }
 
     fun recalcPattern() {
+        updateRange()
         pattern.clear()
         for (i in 0 until pattern.width) {
             for (j in 0 until pattern.height) {
@@ -258,6 +259,7 @@ class Model(width: Int, height: Int) {
         recalcThreading()
         recalcTreadling()
         recalcTieup()
+        updateRange()
     }
 
     fun recalcThreading() {

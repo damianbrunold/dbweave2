@@ -29,57 +29,49 @@ class Dbweave(title: String) : JFrame() {
             model.tieup[i, (i + 1) % 8] = true
             model.tieup[i, (i + 2) % 8] = true
         }
-        model.update_range()
+        model.updateRange()
         model.recalcPattern()
     }
 
     val callback: UICallback = object : UICallback {
         override fun toggleThreading(i: Int, j: Int) {
             model.threading[i] = j
-            threadingView.invalidate()
             threadingView.repaint()
-            model.update_range()
+            model.updateRange()
             model.recalcPattern()
-            patternView.invalidate()
             patternView.repaint()
+            println("warp " + model.warp_range)
+            println("weft " + model.weft_range)
         }
 
         override fun toggleTieup(i: Int, j: Int) {
             model.tieup[i, j] = !model.tieup[i, j]
-            tieupView.invalidate()
             tieupView.repaint()
-            model.update_range()
+            model.updateRange()
             model.recalcPattern()
-            patternView.invalidate()
             patternView.repaint()
+            println("warp " + model.warp_range)
+            println("weft " + model.weft_range)
         }
 
         override fun toggleTreadling(i: Int, j: Int) {
             model.treadling[i, j] = !model.treadling[i, j]
-            treadlingView.invalidate()
             treadlingView.repaint()
-            model.update_range()
+            model.recalcPattern()
+            patternView.repaint()
             println("warp " + model.warp_range)
             println("weft " + model.weft_range)
-            model.recalcPattern()
-            patternView.invalidate()
-            patternView.repaint()
         }
 
         override fun togglePattern(i: Int, j: Int) {
             model.pattern[i, j] = !model.pattern[i, j]
-            patternView.invalidate()
             patternView.repaint()
             model.recalcFromPattern()
-            model.update_range()
+            threadingView.repaint()
+            tieupView.repaint()
+            treadlingView.repaint()
             println("warp " + model.warp_range)
             println("weft " + model.weft_range)
-            threadingView.invalidate()
-            threadingView.repaint()
-            tieupView.invalidate()
-            tieupView.repaint()
-            treadlingView.invalidate()
-            treadlingView.repaint()
         }
     }
 
@@ -147,7 +139,7 @@ class Dbweave(title: String) : JFrame() {
         treadlingView.updateMax(settings.treadlingVisible, py)
         patternView.updateMax(px, py)
 
-        model.update_range()
+        model.updateRange()
     }
 }
 
