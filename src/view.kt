@@ -11,6 +11,8 @@ class ViewSettings {
     var treadlingVisible = 12
 }
 
+val rangeColors = listOf<Color>(Color.WHITE, Color.BLACK, Color.BLUE.darker(), Color.RED.darker(), Color.GREEN.darker()) // TODO
+
 abstract class BaseView(val settings: ViewSettings, val selection: Selection) : JComponent() {
     var maxi: Int = 10
     var maxj: Int = 10
@@ -244,8 +246,14 @@ class TieupView(val tieup: Tieup, val callback: UICallback, settings: ViewSettin
         p0.color = Color.BLACK
         for (i in 0 until maxi) {
             for (j in 0 until maxj) {
-                if (tieup[i, j]) {
-                    painter.paintCell(p0, cellBounds(i, j))
+                val range = tieup[i, j]
+                if (range != 0.toByte()) {
+                    if (range <= 9) {
+                        p0.color = rangeColors[range.toInt()]
+                        painter.paintCell(p0, cellBounds(i, j))
+                    } else {
+                        // TODO use custom painter for special ranges (lift out, binding, unbinding)
+                    }
                 }
             }
         }
@@ -286,8 +294,14 @@ class PatternView(val pattern: Pattern, val callback: UICallback, settings: View
         p0.color = Color.DARK_GRAY
         for (i in 0 until maxi) {
             for (j in 0 until maxj) {
-                if (pattern[i, j]) {
-                    painter.paintCell(p0, cellBounds(i, j))
+                val range = pattern[i, j]
+                if (range != 0.toByte()) {
+                    if (range <= 9) {
+                        p0.color = rangeColors[range.toInt()]
+                        painter.paintCell(p0, cellBounds(i, j))
+                    } else {
+                        // TODO use custom painter for special ranges (lift out, binding, unbinding)
+                    }
                 }
             }
         }

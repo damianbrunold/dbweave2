@@ -1,6 +1,5 @@
 import javax.swing.JFrame
 import java.awt.EventQueue
-import java.awt.FocusTraversalPolicy
 import java.awt.Rectangle
 import java.awt.event.*
 import javax.swing.Timer
@@ -19,6 +18,8 @@ class Dbweave(title: String) : JFrame() {
 
     val model = Model(500, 500)
 
+    var activeRange = 1.toByte()
+
     init {
         for (i in 0 until 70) {
             model.threading[i] = i % 8
@@ -27,9 +28,9 @@ class Dbweave(title: String) : JFrame() {
             model.treadling[j % 8, j] = true
         }
         for (i in 0 until 8) {
-            model.tieup[i, i] = true
-            model.tieup[i, (i + 1) % 8] = true
-            model.tieup[i, (i + 2) % 8] = true
+            model.tieup[i, i] = 1
+            model.tieup[i, (i + 1) % 8] = 1
+            model.tieup[i, (i + 2) % 8] = 1
         }
         model.updateRange()
         model.recalcPattern()
@@ -48,7 +49,7 @@ class Dbweave(title: String) : JFrame() {
         }
 
         override fun toggleTieup(i: Int, j: Int) {
-            model.tieup[i, j] = !model.tieup[i, j]
+            model.tieup[i, j] = if (model.tieup[i, j] == 0.toByte()) activeRange else 0
             model.tieup.selection.setLocation(i, j)
             tieupView.repaint()
             model.updateRange()
@@ -69,7 +70,7 @@ class Dbweave(title: String) : JFrame() {
         }
 
         override fun togglePattern(i: Int, j: Int) {
-            model.pattern[i, j] = !model.pattern[i, j]
+            model.pattern[i, j] = if (model.pattern[i, j] == 0.toByte()) activeRange else 0
             model.pattern.selection.setLocation(i, j)
             patternView.repaint()
             model.recalcFromPattern()
@@ -127,6 +128,29 @@ class Dbweave(title: String) : JFrame() {
                 (focusOwner as BaseView).toggleCursorState()
             }
         }).start()
+
+        // TODO do this in general, not only for pattern
+        patternView.addKeyListener(object : KeyAdapter() {
+            override fun keyReleased(e: KeyEvent?) {
+                super.keyReleased(e)
+                if (e == null) return
+                // TODO use shift+1, ..., shift+0, ctrl+0, ctrl+shift+0
+                if (e.keyCode == KeyEvent.VK_1 || e.keyCode == KeyEvent.VK_NUMPAD1) {
+                    activeRange = 1
+                    println("activeRange = $activeRange")
+                } else if (e.keyCode == KeyEvent.VK_2 || e.keyCode == KeyEvent.VK_NUMPAD2) {
+                    activeRange = 2
+                    println("activeRange = $activeRange")
+                } else if (e.keyCode == KeyEvent.VK_3 || e.keyCode == KeyEvent.VK_NUMPAD3) {
+                    activeRange = 3
+                    println("activeRange = $activeRange")
+                } else if (e.keyCode == KeyEvent.VK_4 || e.keyCode == KeyEvent.VK_NUMPAD4) {
+                    activeRange = 4
+                    println("activeRange = $activeRange")
+                }
+                // TODO do all 9 ranges, plus the special ranges
+            }
+        })
 
         isFocusCycleRoot = true
         focusTraversalPolicy = DbweaveFocusTraversalPolicy(threadingView, tieupView, patternView, treadlingView)
