@@ -17,7 +17,7 @@ class ViewSettings {
 
 val rangeColors = listOf<Color>(Color.WHITE, Color.BLACK, Color.BLUE.darker(), Color.RED.darker(), Color.GREEN.darker()) // TODO
 
-abstract class BaseView(val settings: ViewSettings, val selection: Selection) : JComponent() {
+abstract class BaseView(val settings: ViewSettings, val selection: Selection, var cursorPos: CursorPos, var left: Boolean, var bottom: Boolean) : JComponent() {
     var maxi: Int = 10
     var maxj: Int = 10
 
@@ -45,6 +45,7 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 selection.setLocation(i, j)
+                syncCursor(i, j)
                 repaint()
             }
 
@@ -55,6 +56,7 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 selection.addLocation(i, j)
+                syncCursor(i, j)
                 repaint()
             }
 
@@ -66,6 +68,7 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 selection.addLocation(i, j)
+                syncCursor(i, j)
                 repaint()
             }
 
@@ -75,6 +78,7 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
                 selection.addLocation(i, j)
+                syncCursor(i, j)
                 repaint()
             }
 
@@ -82,6 +86,7 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
         addFocusListener(object: FocusAdapter() {
             override fun focusGained(e: FocusEvent) {
                 super.focusGained(e)
+                updateCursor()
                 repaint()
             }
 
@@ -99,6 +104,7 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
                     } else {
                         selection.setLocation(max(selection.pos.i - 1, 0), selection.pos.j)
                     }
+                    syncCursor(selection.pos.i, selection.pos.j)
                     repaint()
                 } else if (e.keyCode == KeyEvent.VK_RIGHT) {
                     if (e.isShiftDown) {
@@ -106,6 +112,7 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
                     } else {
                         selection.setLocation(min(selection.pos.i + 1, w - 1), selection.pos.j)
                     }
+                    syncCursor(selection.pos.i, selection.pos.j)
                     repaint()
                 } else if (e.keyCode == KeyEvent.VK_UP) {
                     if (e.isShiftDown) {
@@ -113,6 +120,7 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
                     } else {
                         selection.setLocation(selection.pos.i, min(selection.pos.j + 1, h - 1))
                     }
+                    syncCursor(selection.pos.i, selection.pos.j)
                     repaint()
                 } else if (e.keyCode == KeyEvent.VK_DOWN) {
                     if (e.isShiftDown) {
@@ -120,6 +128,7 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
                     } else {
                         selection.setLocation(selection.pos.i, max(selection.pos.j - 1, 0))
                     }
+                    syncCursor(selection.pos.i, selection.pos.j)
                     repaint()
                 } else if (e.keyCode == KeyEvent.VK_ENTER) {
                     KeyboardFocusManager.getCurrentKeyboardFocusManager().focusNextComponent()
@@ -128,7 +137,19 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
         })
        
     }
-    
+
+    fun syncCursor(i: Int, j: Int) {
+        if (left) cursorPos.cursorLeft = i else cursorPos.cursorRight = i
+        if (bottom) cursorPos.cursorBottom = j else cursorPos.cursorTop = j
+    }
+
+    fun updateCursor() {
+        selection.pos.i = if (left) cursorPos.cursorLeft else cursorPos.cursorRight
+        selection.pos.j = if (bottom) cursorPos.cursorBottom else cursorPos.cursorTop
+        selection.orig.i = if (left) cursorPos.cursorLeft else cursorPos.cursorRight
+        selection.orig.j = if (bottom) cursorPos.cursorBottom else cursorPos.cursorTop
+    }
+
     fun updateMax(i: Int, j: Int) {
         maxi = i
         maxj = j
@@ -193,7 +214,8 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
     }
 }
 
-class ThreadingView(val threading: Threading, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings, threading.selection) {
+class ThreadingView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter)
+    : BaseView(settings, model.threading.selection, model.cursorPos, true, false) {
     init {
         maxi = 50
         maxj = settings.threadingVisible
@@ -221,7 +243,7 @@ class ThreadingView(val threading: Threading, val callback: UICallback, settings
         paintGrid(p0)
         p0.color = Color.DARK_GRAY
         for (i in 0 until maxi) {
-            val j = threading[i]
+            val j = model.threading[i]
             if (j == -1) continue
             painter.paintCell(p0, cellBounds(i, j))
         }
@@ -233,7 +255,8 @@ class ThreadingView(val threading: Threading, val callback: UICallback, settings
     }
 }
 
-class TreadlingView(val treadling: Treadling, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings, treadling.selection) {
+class TreadlingView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter)
+    : BaseView(settings, model.treadling.selection, model.cursorPos, false, true) {
     init {
         maxi = settings.treadlingVisible
         maxj = 50
@@ -262,7 +285,7 @@ class TreadlingView(val treadling: Treadling, val callback: UICallback, settings
         p0.color = Color.DARK_GRAY
         for (i in 0 until maxi) {
             for (j in 0 until maxj) {
-                if (treadling[i, j]) {
+                if (model.treadling[i, j]) {
                     painter.paintCell(p0, cellBounds(i, j))
                 }
             }
@@ -275,7 +298,8 @@ class TreadlingView(val treadling: Treadling, val callback: UICallback, settings
     }
 }
 
-class TieupView(val tieup: Tieup, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings, tieup.selection) {
+class TieupView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter)
+    : BaseView(settings, model.tieup.selection, model.cursorPos, false, false) {
     init {
         maxi = settings.treadlingVisible
         maxj = settings.threadingVisible
@@ -304,7 +328,7 @@ class TieupView(val tieup: Tieup, val callback: UICallback, settings: ViewSettin
         p0.color = Color.BLACK
         for (i in 0 until maxi) {
             for (j in 0 until maxj) {
-                val range = tieup[i, j]
+                val range = model.tieup[i, j]
                 if (range != 0.toByte()) {
                     if (range <= 9) {
                         p0.color = rangeColors[range.toInt()]
@@ -323,7 +347,8 @@ class TieupView(val tieup: Tieup, val callback: UICallback, settings: ViewSettin
     }
 }
 
-class PatternView(val pattern: Pattern, val callback: UICallback, settings: ViewSettings, val painter: Painter): BaseView(settings, pattern.selection) {
+class PatternView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter)
+    : BaseView(settings, model.pattern.selection, model.cursorPos, true, true) {
     init {
         maxi = 50
         maxj = 50
@@ -352,7 +377,7 @@ class PatternView(val pattern: Pattern, val callback: UICallback, settings: View
         p0.color = Color.DARK_GRAY
         for (i in 0 until maxi) {
             for (j in 0 until maxj) {
-                val range = pattern[i, j]
+                val range = model.pattern[i, j]
                 if (range != 0.toByte()) {
                     if (range <= 9) {
                         p0.color = rangeColors[range.toInt()]

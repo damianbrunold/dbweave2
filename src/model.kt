@@ -3,6 +3,13 @@ import kotlin.math.min
 
 data class Coord(var i: Int, var j: Int)
 
+class CursorPos {
+    var cursorLeft = 0
+    var cursorRight = 0
+    var cursorTop = 0
+    var cursorBottom = 0
+}
+
 class Selection {
     var orig = Coord(0, 0)
     var pos = Coord(0, 0)
@@ -231,6 +238,8 @@ class Model(width: Int, height: Int) {
 
     var warp_range = ThreadRange(0, 0)
     var weft_range = ThreadRange(0, 0)
+
+    val cursorPos = CursorPos()
 
     fun updateRange() {
         warp_range = get_warp_range()

@@ -82,10 +82,10 @@ class Dbweave(title: String) : JFrame() {
         }
     }
 
-    val threadingView = ThreadingView(model.threading, callback, settings, VerticalPainter())
-    val tieupView = TieupView(model.tieup, callback, settings, CrossPainter())
-    val treadlingView = TreadlingView(model.treadling, callback, settings, DotPainter())
-    val patternView = PatternView(model.pattern, callback, settings, FillPainter())
+    val threadingView = ThreadingView(model, callback, settings, VerticalPainter())
+    val tieupView = TieupView(model, callback, settings, CrossPainter())
+    val treadlingView = TreadlingView(model, callback, settings, DotPainter())
+    val patternView = PatternView(model, callback, settings, FillPainter())
 
     init {
         createUI(title)
