@@ -26,29 +26,73 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
 
     var cursorState = true
 
+    var mouseDrag = false
+
     init {
         isFocusable = true
         addMouseListener(object : MouseAdapter() {
-            override fun mouseClicked(e: MouseEvent?) {
+            override fun mouseClicked(e: MouseEvent) {
                 super.mouseClicked(e)
                 requestFocusInWindow()
             }
+            override fun mousePressed(e: MouseEvent) {
+                super.mousePressed(e)
+                if (mouseDrag) {
+                    mouseDrag = false
+                    return
+                }
+                mouseDrag = true
+                val i = e.x / settings.dx
+                val j = (maxj * settings.dy - e.y) / settings.dy
+                selection.setLocation(i, j)
+                repaint()
+            }
+
+            override fun mouseReleased(e: MouseEvent) {
+                super.mouseReleased(e)
+                if (!mouseDrag) return
+                mouseDrag = false
+                val i = e.x / settings.dx
+                val j = (maxj * settings.dy - e.y) / settings.dy
+                selection.addLocation(i, j)
+                repaint()
+            }
+
+        })
+        addMouseMotionListener(object : MouseAdapter() {
+            override fun mouseDragged(e: MouseEvent) {
+                super.mouseDragged(e)
+                if (!mouseDrag) return
+                val i = e.x / settings.dx
+                val j = (maxj * settings.dy - e.y) / settings.dy
+                selection.addLocation(i, j)
+                repaint()
+            }
+
+            override fun mouseMoved(e: MouseEvent) {
+                super.mouseMoved(e)
+                if (!mouseDrag) return
+                val i = e.x / settings.dx
+                val j = (maxj * settings.dy - e.y) / settings.dy
+                selection.addLocation(i, j)
+                repaint()
+            }
+
         })
         addFocusListener(object: FocusAdapter() {
-            override fun focusGained(e: FocusEvent?) {
+            override fun focusGained(e: FocusEvent) {
                 super.focusGained(e)
                 repaint()
             }
 
-            override fun focusLost(e: FocusEvent?) {
+            override fun focusLost(e: FocusEvent) {
                 super.focusLost(e)
                 repaint()
             }
         })
         addKeyListener(object: KeyAdapter() {
-            override fun keyPressed(e: KeyEvent?) {
+            override fun keyPressed(e: KeyEvent) {
                 super.keyPressed(e)
-                if (e == null) return
                 if (e.keyCode == KeyEvent.VK_LEFT) {
                     if (e.isShiftDown) {
                         selection.addLocation(max(selection.pos.i - 1, 0), selection.pos.j)
@@ -287,7 +331,7 @@ class PatternView(val pattern: Pattern, val callback: UICallback, settings: View
             override fun mouseReleased(e: MouseEvent) {
                 val i = e.x / settings.dx
                 val j = (maxj * settings.dy - e.y) / settings.dy
-                callback.togglePattern(i, j)
+                if (selection.empty and !e.isControlDown) callback.togglePattern(i, j)
             }
         })
         addKeyListener(object : KeyAdapter() {
