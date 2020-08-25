@@ -5,10 +5,14 @@ import kotlin.math.max
 import kotlin.math.min
 
 class ViewSettings {
-    var dx = 12
-    var dy = 12
+    var dx = 14
+    var dy = 14
+
     var threadingVisible = 12
     var treadlingVisible = 12
+
+    var groupx = 4
+    var groupy = 4
 }
 
 val rangeColors = listOf<Color>(Color.WHITE, Color.BLACK, Color.BLUE.darker(), Color.RED.darker(), Color.GREEN.darker()) // TODO
@@ -92,13 +96,23 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection) : 
     }
 
     fun paintGrid(p0: Graphics) {
+        if (p0 !is Graphics2D) return
         val dx = settings.dx
         val dy = settings.dy
-        p0.color = Color.BLACK
+        p0.color = Color.GRAY
         for (i in 0..maxi) {
             p0.drawLine(i * dx,  0, i * dx, maxj * dy)
         }
         for (j in 0..maxj) {
+            p0.drawLine(0, (maxj - j) * dy, maxi * dx, (maxj - j) * dy)
+        }
+        p0.color = Color.BLACK
+        for (i in 0..maxi) {
+            if (i % settings.groupx != 0) continue
+            p0.drawLine(i * dx,  0, i * dx, maxj * dy)
+        }
+        for (j in 0..maxj) {
+            if (j % settings.groupy != 0) continue
             p0.drawLine(0, (maxj - j) * dy, maxi * dx, (maxj - j) * dy)
         }
     }

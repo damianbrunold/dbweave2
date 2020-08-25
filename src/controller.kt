@@ -21,19 +21,19 @@ class Dbweave(title: String) : JFrame() {
     var activeRange = 1.toByte()
 
     init {
-        for (i in 0 until 70) {
-            model.threading[i] = i % 8
-        }
-        for (j in 0 until 40) {
-            model.treadling[j % 8, j] = true
-        }
-        for (i in 0 until 8) {
-            model.tieup[i, i] = 1
-            model.tieup[i, (i + 1) % 8] = 1
-            model.tieup[i, (i + 2) % 8] = 1
-        }
-        model.updateRange()
-        model.recalcPattern()
+//        for (i in 0 until 70) {
+//            model.threading[i] = i % 8
+//        }
+//        for (j in 0 until 40) {
+//            model.treadling[j % 8, j] = true
+//        }
+//        for (i in 0 until 8) {
+//            model.tieup[i, i] = 1
+//            model.tieup[i, (i + 1) % 8] = 1
+//            model.tieup[i, (i + 2) % 8] = 1
+//        }
+//        model.updateRange()
+//        model.recalcPattern()
     }
 
     val callback: UICallback = object : UICallback {
