@@ -3,12 +3,7 @@ import kotlin.math.min
 
 data class Coord(var i: Int, var j: Int)
 
-class CursorPos {
-    var cursorLeft = 0
-    var cursorRight = 0
-    var cursorTop = 0
-    var cursorBottom = 0
-}
+data class CursorPos(var cursorLeft: Int = 0, var cursorRight: Int = 0, var cursorTop: Int = 0, var cursorBottom: Int = 0)
 
 class Selection {
     var orig = Coord(0, 0)
