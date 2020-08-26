@@ -31,187 +31,6 @@ class Selection {
 
 }
 
-class Threading(width: Int) {
-    private val data = IntArray(width) { -1 }
-
-    val selection = Selection()
-
-    val width: Int
-        get() = this.data.size
-
-    val height: Int
-        get() = Int.SIZE_BITS
-
-    operator fun get(i: Int): Int {
-        return data[i]
-    }
-
-    operator fun set(i: Int, value: Int) {
-        if (data[i] == value) {
-            data[i] = -1
-        } else {
-            data[i] = value
-        }
-    }
-
-    fun clear() {
-        for (i in 0 until width) data[i] = -1
-    }
-}
-
-class Tieup() {
-    private val data = ByteArray(width * height)
-
-    val width: Int
-        get() = Int.SIZE_BITS
-
-    val height: Int
-        get() = Int.SIZE_BITS
-
-    val selection = Selection()
-
-    private fun index(i: Int, j: Int): Int {
-        return i +  j * width
-    }
-
-    operator fun get(i: Int, j: Int): Byte {
-        return data[index(i, j)]
-    }
-
-    operator fun set(i: Int, j: Int, value: Byte) {
-        if (this[i, j] == value) {
-            data[index(i, j)] = 0
-        } else {
-            data[index(i, j)] = value
-        }
-    }
-
-    fun clear() {
-        for (i in 0 until width * height) data[i] = 0
-    }
-}
-
-class Treadling(height: Int) {
-    private val data = LongArray(height)
-
-    val selection = Selection()
-
-    val width: Int
-        get() = Long.SIZE_BITS
-
-    val height: Int
-        get() = data.size
-
-    fun row(j: Int): Long {
-        return data[j]
-    }
-
-    fun setRow(j: Int, value: Long) {
-        data[j] = value
-    }
-
-    operator fun get(i: Int, j: Int): Boolean {
-        val value = data[j]
-        return (value and (1L shl i)) != 0L
-    }
-
-    operator fun set(i: Int, j: Int, set: Boolean) {
-        if (set) {
-            data[j] = data[j] or (1L shl i)
-        } else {
-            data[j] = data[j] and (1L shl i).inv()
-        }
-    }
-
-    fun clear() {
-        for (j in 0 until height) data[j] = 0L
-    }
-}
-
-class Pegplan(val height: Int) {
-    private val data = ByteArray(width * height)
-
-    val width: Int
-        get() = Int.SIZE_BITS
-
-    val selection = Selection()
-
-    private fun index(i: Int, j: Int): Int {
-        return i +  j * width
-    }
-
-    operator fun get(i: Int, j: Int): Byte {
-        return data[index(i, j)]
-    }
-
-    operator fun set(i: Int, j: Int, value: Byte) {
-        if (this[i, j] == value) {
-            data[index(i, j)] = 0
-        } else {
-            data[index(i, j)] = value
-        }
-    }
-
-    fun clear() {
-        for (i in 0 until width * height) data[i] = 0
-    }
-}
-
-class Pattern(val width: Int, val height: Int) {
-    private val data = ByteArray(width * height)
-
-    val selection = Selection()
-
-    private fun index(i: Int, j: Int): Int {
-        return i +  j * width
-    }
-
-    operator fun get(i: Int, j: Int): Byte {
-        return data[index(i, j)]
-    }
-
-    operator fun set(i: Int, j: Int, value: Byte) {
-        val idx = index(i, j)
-        if (data[idx] == value) {
-            data[idx] = 0
-        } else {
-            data[idx] = value
-        }
-    }
-
-    fun isSameRow(j1: Int, j2: Int): Boolean {
-        for (i in 0 until width) {
-            if (this[i, j1] != this[i, j2]) return false
-        }
-        return true
-    }
-
-    fun isSameColumn(i1: Int, i2: Int): Boolean {
-        for (j in 0 until height) {
-            if (this[i1, j] != this[i2, j]) return false
-        }
-        return true
-    }
-
-    fun isEmptyRow(j: Int): Boolean {
-        for (i in 0 until width) {
-            if (this[i, j] != 0.toByte()) return false
-        }
-        return true
-    }
-
-    fun isEmptyColumn(i: Int): Boolean {
-        for (j in 0 until height) {
-            if (this[i, j] != 0.toByte()) return false
-        }
-        return true
-    }
-
-    fun clear() {
-        for (idx in 0 until width * height) data[idx] = 0
-    }
-}
-
 data class ThreadRange(val start: Int, val end: Int) {
     operator fun contains(thread: Int): Boolean {
         return (start <= thread) and (thread < end)
@@ -224,16 +43,17 @@ data class ThreadRange(val start: Int, val end: Int) {
 }
 
 class Model(width: Int, height: Int) {
-    val threading = Threading(width)
-    val tieup = Tieup()
-    val treadling = Treadling(height)
-    val pegplan = Pegplan(height)
+    val threading = Grid(width, Int.SIZE_BITS)
+    val tieup = Grid(Int.SIZE_BITS, Int.SIZE_BITS)
+    val treadling = Grid(Int.SIZE_BITS, height)
+    val pegplan = Grid(Int.SIZE_BITS, height)
 
-    var pattern = Pattern(width, height)
+    var pattern = Grid(width, height)
 
     var warp_range = ThreadRange(0, 0)
     var weft_range = ThreadRange(0, 0)
 
+    val selection = Selection()
     val cursorPos = CursorPos()
 
     fun updateRange() {
@@ -245,7 +65,7 @@ class Model(width: Int, height: Int) {
         var start = Int.MAX_VALUE
         var end = 0
         for (i in 0 until threading.width) {
-            if (threading[i] == -1) continue
+            if (threading.isEmptyColumn(i)) continue
             start = min(start, i)
             end = max(end, i + 1)
         }
@@ -256,7 +76,7 @@ class Model(width: Int, height: Int) {
         var start = Int.MAX_VALUE
         var end = 0
         for (j in 0 until treadling.height) {
-            if (treadling.row(j) == 0L) continue
+            if (treadling.isEmptyRow(j)) continue
             start = min(start, j)
             end = max(end, j + 1)
         }
@@ -268,11 +88,11 @@ class Model(width: Int, height: Int) {
         pattern.clear()
         for (i in 0 until pattern.width) {
             for (j in 0 until pattern.height) {
-                val threading = threading[i]
-                if (threading == -1) continue
+                val jj = threading.getFirstInColumn(i)
+                if (jj == -1) continue
                 for (m in 0 until treadling.width) {
-                    if (!treadling[m, j]) continue
-                    val value = tieup[m, threading]
+                    if (treadling[m, j] <= 0) continue
+                    val value = tieup[m, jj]
                     if (value != 0.toByte()) {
                         pattern[i, j] = value
                         break
@@ -297,13 +117,13 @@ class Model(width: Int, height: Int) {
             var found = false
             for (ii in 0 until i) {
                 if (pattern.isSameColumn(i, ii)) {
-                    threading[i] = threading[ii]
+                    threading.copyColumn(ii, i)
                     found = true
                     break
                 }
             }
             if (!found) {
-                threading[i] = next_heddle++
+                threading[i, next_heddle++] = 1
                 // todo handle heddle overflow?!
             }
         }
@@ -317,13 +137,13 @@ class Model(width: Int, height: Int) {
             var found = false
             for (jj in 0 until j) {
                 if (pattern.isSameRow(j, jj)) {
-                    treadling.setRow(j, treadling.row(jj))
+                    treadling.copyRow(jj, j)
                     found = true
                     break
                 }
             }
             if (!found) {
-                treadling[next_tread++, j] = true
+                treadling[next_tread++, j] = 1
                 // todo handle tread overflow?!
             }
         }
@@ -335,9 +155,9 @@ class Model(width: Int, height: Int) {
         for (i in 0 until tieup.width) {
             for (j in 0 until tieup.height) {
                 for (ii in 0 until threading.width) {
-                    if (threading[ii] != j) continue
+                    if (threading[ii, j] <= 0) continue
                     for (jj in 0 until treadling.height) {
-                        if (!treadling[i, jj]) continue
+                        if (treadling[i, jj] <= 0) continue
                         tieup[i, j] = pattern[ii, jj]
                         break
                     }

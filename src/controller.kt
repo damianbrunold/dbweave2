@@ -22,10 +22,10 @@ class Dbweave(title: String) : JFrame() {
 
     init {
 //        for (i in 0 until 70) {
-//            model.threading[i] = i % 8
+//            model.threading[i, i % 8] = 1
 //        }
 //        for (j in 0 until 40) {
-//            model.treadling[j % 8, j] = true
+//            model.treadling[j % 8, j] = 1
 //        }
 //        for (i in 0 until 8) {
 //            model.tieup[i, i] = 1
@@ -38,8 +38,9 @@ class Dbweave(title: String) : JFrame() {
 
     val callback: UICallback = object : UICallback {
         override fun toggleThreading(i: Int, j: Int) {
-            model.threading[i] = j
-            model.threading.selection.setLocation(i, j)
+            model.threading.setSingleInColumn(i, j, 1)
+            model.selection.setLocation(i, j)
+            // TODO update cursorpos?
             threadingView.repaint()
             model.updateRange()
             model.recalcPattern()
@@ -49,8 +50,9 @@ class Dbweave(title: String) : JFrame() {
         }
 
         override fun toggleTieup(i: Int, j: Int) {
-            model.tieup[i, j] = if (model.tieup[i, j] == 0.toByte()) activeRange else 0
-            model.tieup.selection.setLocation(i, j)
+            model.tieup[i, j] = if (model.tieup[i, j] <= 0.toByte()) activeRange else 0
+            model.selection.setLocation(i, j)
+            // TODO update cursorpos?
             tieupView.repaint()
             model.updateRange()
             model.recalcPattern()
@@ -60,8 +62,9 @@ class Dbweave(title: String) : JFrame() {
         }
 
         override fun toggleTreadling(i: Int, j: Int) {
-            model.treadling[i, j] = !model.treadling[i, j]
-            model.treadling.selection.setLocation(i, j)
+            model.treadling[i, j] = if (model.treadling[i, j] <= 0.toByte()) 1 else 0
+            model.selection.setLocation(i, j)
+            // TODO update cursorpos?
             treadlingView.repaint()
             model.recalcPattern()
             patternView.repaint()
@@ -70,8 +73,9 @@ class Dbweave(title: String) : JFrame() {
         }
 
         override fun togglePattern(i: Int, j: Int) {
-            model.pattern[i, j] = if (model.pattern[i, j] == 0.toByte()) activeRange else 0
-            model.pattern.selection.setLocation(i, j)
+            model.pattern[i, j] = if (model.pattern[i, j] <= 0.toByte()) activeRange else 0
+            model.selection.setLocation(i, j)
+            // TODO update cursorpos?
             patternView.repaint()
             model.recalcFromPattern()
             threadingView.repaint()

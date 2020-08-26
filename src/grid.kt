@@ -77,4 +77,28 @@ class Grid(val width: Int, val height: Int){
     fun clearRow(j: Int) {
         for (i in 0 until width) data[index(i, j)] = 0
     }
+
+    fun getFirstInColumn(i: Int): Int {
+        for (j in 0 until height) if (data[index(i, j)] > 0) return j
+        return -1
+    }
+
+    fun getFirstInRow(j: Int): Int {
+        for (i in 0 until width) if (data[index(i, j)] > 0) return i
+        return -1
+    }
+
+    fun setSingleInColumn(i: Int, j: Int, value: Byte) {
+        for (jj in 0 until height) {
+            if (jj == j) data[index(i, jj)] = value
+            else data[index(i, jj)] = 0
+        }
+    }
+
+    fun setSingleInRow(i: Int, j: Int, value: Byte) {
+        for (ii in 0 until width) {
+            if (ii == i) data[index(ii, j)] = value
+            else data[index(ii, j)] = 0
+        }
+    }
 }

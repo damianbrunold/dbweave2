@@ -215,7 +215,7 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection, va
 }
 
 class ThreadingView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter)
-    : BaseView(settings, model.threading.selection, model.cursorPos, true, false) {
+    : BaseView(settings, model.selection, model.cursorPos, true, false) {
     init {
         maxi = 50
         maxj = settings.threadingVisible
@@ -243,9 +243,10 @@ class ThreadingView(val model: Model, val callback: UICallback, settings: ViewSe
         paintGrid(p0)
         p0.color = Color.DARK_GRAY
         for (i in 0 until maxi) {
-            val j = model.threading[i]
-            if (j == -1) continue
-            painter.paintCell(p0, cellBounds(i, j))
+            for (j in 0 until maxj) {
+                if (model.threading[i, j] <= 0) continue
+                painter.paintCell(p0, cellBounds(i, j))
+            }
         }
         if (hasFocus()) {
             p0.color = Color.RED
@@ -256,7 +257,7 @@ class ThreadingView(val model: Model, val callback: UICallback, settings: ViewSe
 }
 
 class TreadlingView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter)
-    : BaseView(settings, model.treadling.selection, model.cursorPos, false, true) {
+    : BaseView(settings, model.selection, model.cursorPos, false, true) {
     init {
         maxi = settings.treadlingVisible
         maxj = 50
@@ -285,9 +286,8 @@ class TreadlingView(val model: Model, val callback: UICallback, settings: ViewSe
         p0.color = Color.DARK_GRAY
         for (i in 0 until maxi) {
             for (j in 0 until maxj) {
-                if (model.treadling[i, j]) {
-                    painter.paintCell(p0, cellBounds(i, j))
-                }
+                if (model.treadling[i, j] <= 0) continue
+                painter.paintCell(p0, cellBounds(i, j))
             }
         }
         if (hasFocus()) {
@@ -299,7 +299,7 @@ class TreadlingView(val model: Model, val callback: UICallback, settings: ViewSe
 }
 
 class TieupView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter)
-    : BaseView(settings, model.tieup.selection, model.cursorPos, false, false) {
+    : BaseView(settings, model.selection, model.cursorPos, false, false) {
     init {
         maxi = settings.treadlingVisible
         maxj = settings.threadingVisible
@@ -348,7 +348,7 @@ class TieupView(val model: Model, val callback: UICallback, settings: ViewSettin
 }
 
 class PatternView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter)
-    : BaseView(settings, model.pattern.selection, model.cursorPos, true, true) {
+    : BaseView(settings, model.selection, model.cursorPos, true, true) {
     init {
         maxi = 50
         maxj = 50
