@@ -17,9 +17,28 @@ class ViewSettings {
 
 val rangeColors = listOf<Color>(Color.WHITE, Color.BLACK, Color.BLUE.darker(), Color.RED.darker(), Color.GREEN.darker()) // TODO
 
-abstract class BaseView(val settings: ViewSettings, val selection: Selection, var cursorPos: CursorPos, var left: Boolean, var bottom: Boolean) : JComponent() {
+class GridView(val model: Model,
+               val part: Part,
+               private val settings: ViewSettings,
+               private val callback: UICallback,
+               var painter: Painter) : JComponent() {
     var maxi: Int = 10
     var maxj: Int = 10
+
+    init {
+        maxi = when (part) {
+            Part.THREADING -> 50
+            Part.TIEUP -> settings.treadlingVisible
+            Part.TREADLING -> settings.treadlingVisible
+            Part.PATTERN -> 50
+        }
+        maxj = when (part) {
+            Part.THREADING -> settings.threadingVisible
+            Part.TIEUP -> settings.threadingVisible
+            Part.TREADLING -> 50
+            Part.PATTERN -> 50
+        }
+    }
 
     var w = 100
     var h = 100
@@ -27,6 +46,16 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection, va
     var cursorState = true
 
     var mouseDrag = false
+
+    fun getI(x: Int) = x / settings.dx
+    fun getJ(y: Int) = (maxj * settings.dy - y) / settings.dy
+
+    fun getGrid(): Grid = when(part) {
+        Part.THREADING -> model.threading
+        Part.TIEUP -> model.tieup
+        Part.TREADLING -> model.treadling
+        Part.PATTERN -> model.pattern
+    }
 
     init {
         isFocusable = true
@@ -42,22 +71,16 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection, va
                     return
                 }
                 mouseDrag = true
-                val i = e.x / settings.dx
-                val j = (maxj * settings.dy - e.y) / settings.dy
-                selection.setLocation(i, j)
-                syncCursor(i, j)
-                repaint()
+                callback.startCoord(part, getI(e.x), getJ(e.y))
             }
 
             override fun mouseReleased(e: MouseEvent) {
                 super.mouseReleased(e)
                 if (!mouseDrag) return
                 mouseDrag = false
-                val i = e.x / settings.dx
-                val j = (maxj * settings.dy - e.y) / settings.dy
-                selection.addLocation(i, j)
-                syncCursor(i, j)
-                repaint()
+                if (!e.isControlDown) {
+                    callback.endCoord(part, getI(e.x), getJ(e.y))
+                }
             }
 
         })
@@ -65,89 +88,63 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection, va
             override fun mouseDragged(e: MouseEvent) {
                 super.mouseDragged(e)
                 if (!mouseDrag) return
-                val i = e.x / settings.dx
-                val j = (maxj * settings.dy - e.y) / settings.dy
-                selection.addLocation(i, j)
-                syncCursor(i, j)
-                repaint()
+                callback.addCoord(part, getI(e.x), getJ(e.y))
             }
 
             override fun mouseMoved(e: MouseEvent) {
                 super.mouseMoved(e)
                 if (!mouseDrag) return
-                val i = e.x / settings.dx
-                val j = (maxj * settings.dy - e.y) / settings.dy
-                selection.addLocation(i, j)
-                syncCursor(i, j)
-                repaint()
+                callback.addCoord(part, getI(e.x), getJ(e.y))
             }
 
         })
         addFocusListener(object: FocusAdapter() {
             override fun focusGained(e: FocusEvent) {
                 super.focusGained(e)
-                updateCursor()
-                repaint()
+                callback.gainedFocus(part)
             }
 
             override fun focusLost(e: FocusEvent) {
                 super.focusLost(e)
-                repaint()
+                callback.lostFocus(part)
             }
         })
         addKeyListener(object: KeyAdapter() {
             override fun keyPressed(e: KeyEvent) {
                 super.keyPressed(e)
+                val selection = model.selection
                 if (e.keyCode == KeyEvent.VK_LEFT) {
                     if (e.isShiftDown) {
-                        selection.addLocation(max(selection.pos.i - 1, 0), selection.pos.j)
+                        callback.addCoord(part, max(selection.pos.i - 1, 0), selection.pos.j)
                     } else {
-                        selection.setLocation(max(selection.pos.i - 1, 0), selection.pos.j)
+                        callback.startCoord(part, max(selection.pos.i - 1, 0), selection.pos.j)
                     }
-                    syncCursor(selection.pos.i, selection.pos.j)
-                    repaint()
                 } else if (e.keyCode == KeyEvent.VK_RIGHT) {
                     if (e.isShiftDown) {
-                        selection.addLocation(min(selection.pos.i + 1, w - 1), selection.pos.j)
+                        callback.addCoord(part, min(selection.pos.i + 1, w - 1), selection.pos.j)
                     } else {
-                        selection.setLocation(min(selection.pos.i + 1, w - 1), selection.pos.j)
+                        callback.startCoord(part, min(selection.pos.i + 1, w - 1), selection.pos.j)
                     }
-                    syncCursor(selection.pos.i, selection.pos.j)
-                    repaint()
                 } else if (e.keyCode == KeyEvent.VK_UP) {
                     if (e.isShiftDown) {
-                        selection.addLocation(selection.pos.i, min(selection.pos.j + 1, h - 1))
+                        callback.addCoord(part, selection.pos.i, min(selection.pos.j + 1, h - 1))
                     } else {
-                        selection.setLocation(selection.pos.i, min(selection.pos.j + 1, h - 1))
+                        callback.startCoord(part, selection.pos.i, min(selection.pos.j + 1, h - 1))
                     }
-                    syncCursor(selection.pos.i, selection.pos.j)
-                    repaint()
                 } else if (e.keyCode == KeyEvent.VK_DOWN) {
                     if (e.isShiftDown) {
-                        selection.addLocation(selection.pos.i, max(selection.pos.j - 1, 0))
+                        callback.addCoord(part, selection.pos.i, max(selection.pos.j - 1, 0))
                     } else {
-                        selection.setLocation(selection.pos.i, max(selection.pos.j - 1, 0))
+                        callback.startCoord(part, selection.pos.i, max(selection.pos.j - 1, 0))
                     }
-                    syncCursor(selection.pos.i, selection.pos.j)
-                    repaint()
+                } else if (e.keyCode == KeyEvent.VK_SPACE) {
+                    callback.toggle(true)
                 } else if (e.keyCode == KeyEvent.VK_ENTER) {
                     KeyboardFocusManager.getCurrentKeyboardFocusManager().focusNextComponent()
                 }
             }
         })
        
-    }
-
-    fun syncCursor(i: Int, j: Int) {
-        if (left) cursorPos.cursorLeft = i else cursorPos.cursorRight = i
-        if (bottom) cursorPos.cursorBottom = j else cursorPos.cursorTop = j
-    }
-
-    fun updateCursor() {
-        selection.pos.i = if (left) cursorPos.cursorLeft else cursorPos.cursorRight
-        selection.pos.j = if (bottom) cursorPos.cursorBottom else cursorPos.cursorTop
-        selection.orig.i = if (left) cursorPos.cursorLeft else cursorPos.cursorRight
-        selection.orig.j = if (bottom) cursorPos.cursorBottom else cursorPos.cursorTop
     }
 
     fun updateMax(i: Int, j: Int) {
@@ -158,6 +155,31 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection, va
     fun updateSize(width: Int, height: Int) {
         w = width
         h = height
+    }
+
+    override fun paintComponent(p0: Graphics) {
+        super.paintComponent(p0)
+        paintGrid(p0)
+        p0.color = Color.BLACK
+        val grid = getGrid()
+        for (i in 0 until maxi) {
+            for (j in 0 until maxj) {
+                val range = grid[i, j]
+                if (range != 0.toByte()) {
+                    if (range <= 9) {
+                        p0.color = rangeColors[range.toInt()]
+                        painter.paintCell(p0, cellBounds(i, j))
+                    } else {
+                        // TODO use custom painter for special ranges (lift out, binding, unbinding)
+                    }
+                }
+            }
+        }
+        if (hasFocus()) {
+            p0.color = Color.RED
+            p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
+        }
+        paintSelection(p0)
     }
 
     fun paintGrid(p0: Graphics) {
@@ -193,201 +215,23 @@ abstract class BaseView(val settings: ViewSettings, val selection: Selection, va
         p.color = Color.RED
         p.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
 
-        if (!selection.empty) {
+        if (!model.selection.empty) {
             p.color = Color.ORANGE
             p.stroke = BasicStroke(3.0f, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_BEVEL, 0.0f, floatArrayOf(9.0f), if (cursorState) 0.0f else 4.5f);
-            val bl = selection.bottomLeft()
-            val tr = selection.topRight()
+            val bl = model.selection.bottomLeft()
+            val tr = model.selection.topRight()
             val w = tr.i - bl.i + 1
             val h = tr.j - bl.j + 1
             p.drawRect(bl.i * settings.dx, (maxj - tr.j - 1) * settings.dy, w * settings.dx, h * settings.dy)
         }
         p.color = if (cursorState) Color.RED else Color.ORANGE
         p.stroke = BasicStroke(3.0f)
-        p.drawRect(selection.pos.i * settings.dx, (maxj - selection.pos.j - 1) * settings.dy, settings.dx, settings.dy)
+        p.drawRect(model.selection.pos.i * settings.dx, (maxj - model.selection.pos.j - 1) * settings.dy, settings.dx, settings.dy)
         p.dispose()
     }
 
     fun toggleCursorState() {
         cursorState = !cursorState
         repaint()
-    }
-}
-
-class ThreadingView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter)
-    : BaseView(settings, model.selection, model.cursorPos, true, false) {
-    init {
-        maxi = 50
-        maxj = settings.threadingVisible
-        addMouseListener(object : MouseAdapter() {
-            override fun mouseReleased(e: MouseEvent) {
-                val i = e.x / settings.dx
-                val j = (maxj * settings.dy - e.y) / settings.dy
-                callback.toggleThreading(i, j)
-            }
-        })
-        addKeyListener(object : KeyAdapter() {
-            override fun keyReleased(e: KeyEvent?) {
-                super.keyReleased(e)
-                if (e == null) return
-                if (e.keyCode == KeyEvent.VK_SPACE) {
-                    callback.toggleThreading(selection.pos.i, selection.pos.j)
-                    selection.setLocation(selection.pos.i, selection.pos.j + 1)
-                }
-            }
-        })
-    }
-
-    override fun paintComponent(p0: Graphics) {
-        super.paintComponent(p0)
-        paintGrid(p0)
-        p0.color = Color.DARK_GRAY
-        for (i in 0 until maxi) {
-            for (j in 0 until maxj) {
-                if (model.threading[i, j] <= 0) continue
-                painter.paintCell(p0, cellBounds(i, j))
-            }
-        }
-        if (hasFocus()) {
-            p0.color = Color.RED
-            p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
-        }
-        paintSelection(p0)
-    }
-}
-
-class TreadlingView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter)
-    : BaseView(settings, model.selection, model.cursorPos, false, true) {
-    init {
-        maxi = settings.treadlingVisible
-        maxj = 50
-        addMouseListener(object : MouseAdapter() {
-            override fun mouseReleased(e: MouseEvent) {
-                val i = e.x / settings.dx
-                val j = (maxj * settings.dy - e.y) / settings.dy
-                callback.toggleTreadling(i, j)
-            }
-        })
-        addKeyListener(object : KeyAdapter() {
-            override fun keyReleased(e: KeyEvent?) {
-                super.keyReleased(e)
-                if (e == null) return
-                if (e.keyCode == KeyEvent.VK_SPACE) {
-                    callback.toggleTreadling(selection.pos.i, selection.pos.j)
-                    selection.setLocation(selection.pos.i, selection.pos.j + 1)
-                }
-            }
-        })
-    }
-
-    override fun paintComponent(p0: Graphics) {
-        super.paintComponent(p0)
-        paintGrid(p0)
-        p0.color = Color.DARK_GRAY
-        for (i in 0 until maxi) {
-            for (j in 0 until maxj) {
-                if (model.treadling[i, j] <= 0) continue
-                painter.paintCell(p0, cellBounds(i, j))
-            }
-        }
-        if (hasFocus()) {
-            p0.color = Color.RED
-            p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
-        }
-        paintSelection(p0)
-    }
-}
-
-class TieupView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter)
-    : BaseView(settings, model.selection, model.cursorPos, false, false) {
-    init {
-        maxi = settings.treadlingVisible
-        maxj = settings.threadingVisible
-        addMouseListener(object : MouseAdapter() {
-            override fun mouseReleased(e: MouseEvent) {
-                val i = e.x / settings.dx
-                val j = (maxj * settings.dy - e.y) / settings.dy
-                callback.toggleTieup(i, j)
-            }
-        })
-        addKeyListener(object : KeyAdapter() {
-            override fun keyReleased(e: KeyEvent?) {
-                super.keyReleased(e)
-                if (e == null) return
-                if (e.keyCode == KeyEvent.VK_SPACE) {
-                    callback.toggleTieup(selection.pos.i, selection.pos.j)
-                    selection.setLocation(selection.pos.i, selection.pos.j + 1)
-                }
-            }
-        })
-    }
-
-    override fun paintComponent(p0: Graphics) {
-        super.paintComponent(p0)
-        paintGrid(p0)
-        p0.color = Color.BLACK
-        for (i in 0 until maxi) {
-            for (j in 0 until maxj) {
-                val range = model.tieup[i, j]
-                if (range != 0.toByte()) {
-                    if (range <= 9) {
-                        p0.color = rangeColors[range.toInt()]
-                        painter.paintCell(p0, cellBounds(i, j))
-                    } else {
-                        // TODO use custom painter for special ranges (lift out, binding, unbinding)
-                    }
-                }
-            }
-        }
-        if (hasFocus()) {
-            p0.color = Color.RED
-            p0.drawRect(0, 0, maxi * settings.dx, maxj * settings.dy)
-        }
-        paintSelection(p0)
-    }
-}
-
-class PatternView(val model: Model, val callback: UICallback, settings: ViewSettings, val painter: Painter)
-    : BaseView(settings, model.selection, model.cursorPos, true, true) {
-    init {
-        maxi = 50
-        maxj = 50
-        addMouseListener(object : MouseAdapter() {
-            override fun mouseReleased(e: MouseEvent) {
-                val i = e.x / settings.dx
-                val j = (maxj * settings.dy - e.y) / settings.dy
-                if (selection.empty and !e.isControlDown) callback.togglePattern(i, j)
-            }
-        })
-        addKeyListener(object : KeyAdapter() {
-            override fun keyReleased(e: KeyEvent?) {
-                super.keyReleased(e)
-                if (e == null) return
-                if (e.keyCode == KeyEvent.VK_SPACE) {
-                    callback.togglePattern(selection.pos.i, selection.pos.j)
-                    selection.setLocation(selection.pos.i, selection.pos.j + 1)
-                }
-            }
-        })
-    }
-
-    override fun paintComponent(p0: Graphics) {
-        super.paintComponent(p0)
-        paintGrid(p0)
-        p0.color = Color.DARK_GRAY
-        for (i in 0 until maxi) {
-            for (j in 0 until maxj) {
-                val range = model.pattern[i, j]
-                if (range != 0.toByte()) {
-                    if (range <= 9) {
-                        p0.color = rangeColors[range.toInt()]
-                        painter.paintCell(p0, cellBounds(i, j))
-                    } else {
-                        // TODO use custom painter for special ranges (lift out, binding, unbinding)
-                    }
-                }
-            }
-        }
-        paintSelection(p0)
     }
 }

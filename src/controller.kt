@@ -5,18 +5,88 @@ import java.awt.event.*
 import javax.swing.Timer
 import javax.swing.UIManager
 
-interface UICallback {
-    fun toggleThreading(i: Int, j: Int)
-    fun toggleTieup(i: Int, j: Int)
-    fun toggleTreadling(i: Int, j: Int)
-    fun togglePattern(i: Int, j: Int)
-}
-
 class Dbweave(title: String) : JFrame() {
 
     val settings = ViewSettings()
 
     val model = Model(500, 500)
+
+    val callback: UICallback = object : UICallback {
+        override fun gainedFocus(part: Part) {
+            updateCursor(part)
+            repaint()
+        }
+
+        override fun lostFocus(part: Part) {
+            repaint()
+        }
+
+        override fun startCoord(part: Part, i: Int, j: Int) {
+            model.selection.setLocation(part, i, j)
+            syncCursor(part, i, j)
+            views[part]?.repaint()
+        }
+
+        override fun addCoord(part: Part, i: Int, j: Int) {
+            model.selection.addLocation(part, i, j)
+            syncCursor(part, i, j)
+            views[part]?.repaint()
+        }
+
+        override fun endCoord(part: Part, i: Int, j: Int) {
+            model.selection.addLocation(part, i, j)
+            syncCursor(part, i, j)
+            if (model.selection.empty) {
+                toggle()
+            }
+        }
+
+        override fun toggle(moveCursor: Boolean) {
+            val i = model.selection.pos.i
+            val j = model.selection.pos.j
+            if (moveCursor) {
+                // TODO add checks, make configurable
+                model.selection.pos.j++
+                model.selection.orig.j++
+            }
+            when (model.selection.part) {
+                Part.THREADING -> {
+                    model.threading.setSingleInColumn(i, j, 1)
+                    model.updateRange()
+                    model.recalcPattern()
+                    views[Part.THREADING]?.repaint()
+                    views[Part.PATTERN]?.repaint()
+                }
+                Part.TIEUP -> {
+                    model.tieup[i, j] = if (model.tieup[i, j] <= 0.toByte()) activeRange else 0
+                    model.updateRange()
+                    model.recalcPattern()
+                    views[Part.TIEUP]?.repaint()
+                    views[Part.PATTERN]?.repaint()
+                }
+                Part.TREADLING -> {
+                    model.treadling[i, j] = if (model.treadling[i, j] <= 0.toByte()) 1 else 0
+                    model.updateRange()
+                    model.recalcPattern()
+                    views[Part.TREADLING]?.repaint()
+                    views[Part.PATTERN]?.repaint()
+                }
+                Part.PATTERN -> {
+                    model.pattern[i, j] = if (model.pattern[i, j] <= 0.toByte()) activeRange else 0
+                    model.recalcFromPattern()
+                    model.updateRange()
+                    repaint()
+                }
+            }
+        }
+    }
+
+    val views = mapOf(
+            Part.THREADING to GridView(model, Part.THREADING, settings, callback, VerticalPainter()),
+            Part.TIEUP     to GridView(model, Part.TIEUP,     settings, callback, CrossPainter()),
+            Part.TREADLING to GridView(model, Part.TREADLING, settings, callback, DotPainter()),
+            Part.PATTERN   to GridView(model, Part.PATTERN,   settings, callback, FillPainter())
+    )
 
     var activeRange = 1.toByte()
 
@@ -36,61 +106,6 @@ class Dbweave(title: String) : JFrame() {
 //        model.recalcPattern()
     }
 
-    val callback: UICallback = object : UICallback {
-        override fun toggleThreading(i: Int, j: Int) {
-            model.threading.setSingleInColumn(i, j, 1)
-            model.selection.setLocation(i, j)
-            // TODO update cursorpos?
-            threadingView.repaint()
-            model.updateRange()
-            model.recalcPattern()
-            patternView.repaint()
-            println("warp " + model.warp_range)
-            println("weft " + model.weft_range)
-        }
-
-        override fun toggleTieup(i: Int, j: Int) {
-            model.tieup[i, j] = if (model.tieup[i, j] <= 0.toByte()) activeRange else 0
-            model.selection.setLocation(i, j)
-            // TODO update cursorpos?
-            tieupView.repaint()
-            model.updateRange()
-            model.recalcPattern()
-            patternView.repaint()
-            println("warp " + model.warp_range)
-            println("weft " + model.weft_range)
-        }
-
-        override fun toggleTreadling(i: Int, j: Int) {
-            model.treadling[i, j] = if (model.treadling[i, j] <= 0.toByte()) 1 else 0
-            model.selection.setLocation(i, j)
-            // TODO update cursorpos?
-            treadlingView.repaint()
-            model.recalcPattern()
-            patternView.repaint()
-            println("warp " + model.warp_range)
-            println("weft " + model.weft_range)
-        }
-
-        override fun togglePattern(i: Int, j: Int) {
-            model.pattern[i, j] = if (model.pattern[i, j] <= 0.toByte()) activeRange else 0
-            model.selection.setLocation(i, j)
-            // TODO update cursorpos?
-            patternView.repaint()
-            model.recalcFromPattern()
-            threadingView.repaint()
-            tieupView.repaint()
-            treadlingView.repaint()
-            println("warp " + model.warp_range)
-            println("weft " + model.weft_range)
-        }
-    }
-
-    val threadingView = ThreadingView(model, callback, settings, VerticalPainter())
-    val tieupView = TieupView(model, callback, settings, CrossPainter())
-    val treadlingView = TreadlingView(model, callback, settings, DotPainter())
-    val patternView = PatternView(model, callback, settings, FillPainter())
-
     init {
         createUI(title)
     }
@@ -104,15 +119,15 @@ class Dbweave(title: String) : JFrame() {
 
         layout = null
 
-        threadingView.updateSize(model.threading.width, model.threading.height)
-        tieupView.updateSize(model.tieup.width, model.tieup.height)
-        treadlingView.updateSize(model.treadling.width, model.treadling.height)
-        patternView.updateSize(model.pattern.width, model.pattern.height)
+        views[Part.THREADING]?.updateSize(model.threading.width, model.threading.height)
+        views[Part.TIEUP]?.updateSize(model.tieup.width, model.tieup.height)
+        views[Part.TREADLING]?.updateSize(model.treadling.width, model.treadling.height)
+        views[Part.PATTERN]?.updateSize(model.pattern.width, model.pattern.height)
 
-        add(threadingView)
-        add(tieupView)
-        add(patternView)
-        add(treadlingView)
+        add(views[Part.THREADING])
+        add(views[Part.TIEUP])
+        add(views[Part.TREADLING])
+        add(views[Part.PATTERN])
 
         arrangeComponents()
 
@@ -127,14 +142,14 @@ class Dbweave(title: String) : JFrame() {
             }
         })
 
-        Timer(500, {
-            if (focusOwner is BaseView) {
-                (focusOwner as BaseView).toggleCursorState()
+        Timer(500) {
+            if (focusOwner is GridView) {
+                (focusOwner as GridView).toggleCursorState()
             }
-        }).start()
+        }.start()
 
         // TODO do this in general, not only for pattern
-        patternView.addKeyListener(object : KeyAdapter() {
+        views[model.selection.part]?.addKeyListener(object : KeyAdapter() {
             override fun keyReleased(e: KeyEvent?) {
                 super.keyReleased(e)
                 if (e == null) return
@@ -157,7 +172,11 @@ class Dbweave(title: String) : JFrame() {
         })
 
         isFocusCycleRoot = true
-        focusTraversalPolicy = DbweaveFocusTraversalPolicy(threadingView, tieupView, patternView, treadlingView)
+        focusTraversalPolicy = DbweaveFocusTraversalPolicy(
+                views[Part.THREADING]!!,
+                views[Part.TIEUP]!!,
+                views[Part.PATTERN]!!,
+                views[Part.TREADLING]!!)
     }
 
     private fun arrangeComponents() {
@@ -177,25 +196,70 @@ class Dbweave(title: String) : JFrame() {
         val y2 = y1 + h1 + settings.dx
         val h2 = py * settings.dy + 1
 
-        threadingView.bounds = Rectangle(x1, y1, w1, h1)
-        tieupView.bounds = Rectangle(x2, y1, w2, h1)
-        treadlingView.bounds = Rectangle(x2, y2, w2, h2)
-        patternView.bounds = Rectangle(x1, y2, w1, h2)
+        views[Part.THREADING]?.bounds = Rectangle(x1, y1, w1, h1)
+        views[Part.TIEUP]?.bounds = Rectangle(x2, y1, w2, h1)
+        views[Part.TREADLING]?.bounds = Rectangle(x2, y2, w2, h2)
+        views[Part.PATTERN]?.bounds = Rectangle(x1, y2, w1, h2)
 
-        threadingView.updateMax(px, settings.threadingVisible)
-        tieupView.updateMax(settings.treadlingVisible, settings.threadingVisible)
-        treadlingView.updateMax(settings.treadlingVisible, py)
-        patternView.updateMax(px, py)
+        views[Part.THREADING]?.updateMax(px, settings.threadingVisible)
+        views[Part.TIEUP]?.updateMax(settings.treadlingVisible, settings.threadingVisible)
+        views[Part.TREADLING]?.updateMax(settings.treadlingVisible, py)
+        views[Part.PATTERN]?.updateMax(px, py)
 
         model.updateRange()
     }
+
+    fun syncCursor(part: Part, i: Int, j: Int) {
+        when (part) {
+            Part.THREADING -> {
+                model.cursorPos.cursorLeft = i
+                model.cursorPos.cursorTop = j
+            }
+            Part.TIEUP -> {
+                model.cursorPos.cursorRight = i
+                model.cursorPos.cursorTop = j
+            }
+            Part.TREADLING -> {
+                model.cursorPos.cursorRight = i
+                model.cursorPos.cursorBottom = j
+            }
+            Part.PATTERN -> {
+                model.cursorPos.cursorLeft = i
+                model.cursorPos.cursorBottom = j
+            }
+        }
+    }
+
+    fun updateCursor(part: Part) {
+        when (part) {
+            Part.THREADING -> {
+                model.selection.pos.i = model.cursorPos.cursorLeft
+                model.selection.pos.j = model.cursorPos.cursorTop
+            }
+            Part.TIEUP -> {
+                model.selection.pos.i = model.cursorPos.cursorRight
+                model.selection.pos.j = model.cursorPos.cursorTop
+            }
+            Part.TREADLING -> {
+                model.selection.pos.i = model.cursorPos.cursorRight
+                model.selection.pos.j = model.cursorPos.cursorBottom
+            }
+            Part.PATTERN -> {
+                model.selection.pos.i = model.cursorPos.cursorLeft
+                model.selection.pos.j = model.cursorPos.cursorBottom
+            }
+        }
+        model.selection.orig.i = model.selection.pos.i
+        model.selection.orig.j = model.selection.pos.j
+    }
+
 }
 
 private fun createAndShowGUI() {
     UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
     val frame = Dbweave("DB-WEAVE")
     frame.isVisible = true
-    frame.patternView.requestFocus()
+    frame.views[Part.PATTERN]?.requestFocus()
 }
 
 fun main() {

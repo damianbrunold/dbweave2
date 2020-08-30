@@ -2,7 +2,7 @@ import java.awt.Component
 import java.awt.Container
 import java.awt.FocusTraversalPolicy
 
-class DbweaveFocusTraversalPolicy(val threading: ThreadingView, val tieup: TieupView, val pattern: PatternView, val treadling: TreadlingView)
+class DbweaveFocusTraversalPolicy(val threading: GridView, val tieup: GridView, val pattern: GridView, val treadling: GridView)
     : FocusTraversalPolicy() {
 
     override fun getComponentAfter(aContainer: Container?, aComponent: Component?): Component {

@@ -1,11 +1,19 @@
 import kotlin.math.max
 import kotlin.math.min
 
+enum class Part {
+    THREADING,
+    TIEUP,
+    TREADLING,
+    PATTERN
+}
+
 data class Coord(var i: Int, var j: Int)
 
 data class CursorPos(var cursorLeft: Int = 0, var cursorRight: Int = 0, var cursorTop: Int = 0, var cursorBottom: Int = 0)
 
 class Selection {
+    var part = Part.PATTERN
     var orig = Coord(0, 0)
     var pos = Coord(0, 0)
 
@@ -15,18 +23,23 @@ class Selection {
     fun bottomLeft() = Coord(min(orig.i, pos.i), min(orig.j, pos.j))
     fun topRight() = Coord(max(orig.i, pos.i), max(orig.j, pos.j))
 
-    fun setLocation(i: Int, j: Int) {
+    fun setLocation(part_: Part, i: Int, j: Int) {
+        part = part_
         orig = Coord(i, j)
         pos = Coord(i, j)
     }
 
-    fun addLocation(i: Int, j: Int) {
+    fun addLocation(part_: Part, i: Int, j: Int) {
+        if (part != part_) {
+            part = part_
+            orig = Coord(i, j)
+        }
         pos.i = i
         pos.j = j
     }
 
     override fun toString(): String {
-        return "Selection(orig=$orig, pos=$pos)"
+        return "Selection(part=$part, orig=$orig, pos=$pos)"
     }
 
 }
