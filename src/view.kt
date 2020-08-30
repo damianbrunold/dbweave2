@@ -1,8 +1,6 @@
 import java.awt.*
 import java.awt.event.*
 import javax.swing.JComponent
-import kotlin.math.max
-import kotlin.math.min
 
 class ViewSettings {
     var dx = 14
@@ -109,42 +107,6 @@ class GridView(val model: Model,
                 callback.lostFocus(part)
             }
         })
-        addKeyListener(object: KeyAdapter() {
-            override fun keyPressed(e: KeyEvent) {
-                super.keyPressed(e)
-                val selection = model.selection
-                if (e.keyCode == KeyEvent.VK_LEFT) {
-                    if (e.isShiftDown) {
-                        callback.addCoord(part, max(selection.pos.i - 1, 0), selection.pos.j)
-                    } else {
-                        callback.startCoord(part, max(selection.pos.i - 1, 0), selection.pos.j)
-                    }
-                } else if (e.keyCode == KeyEvent.VK_RIGHT) {
-                    if (e.isShiftDown) {
-                        callback.addCoord(part, min(selection.pos.i + 1, w - 1), selection.pos.j)
-                    } else {
-                        callback.startCoord(part, min(selection.pos.i + 1, w - 1), selection.pos.j)
-                    }
-                } else if (e.keyCode == KeyEvent.VK_UP) {
-                    if (e.isShiftDown) {
-                        callback.addCoord(part, selection.pos.i, min(selection.pos.j + 1, h - 1))
-                    } else {
-                        callback.startCoord(part, selection.pos.i, min(selection.pos.j + 1, h - 1))
-                    }
-                } else if (e.keyCode == KeyEvent.VK_DOWN) {
-                    if (e.isShiftDown) {
-                        callback.addCoord(part, selection.pos.i, max(selection.pos.j - 1, 0))
-                    } else {
-                        callback.startCoord(part, selection.pos.i, max(selection.pos.j - 1, 0))
-                    }
-                } else if (e.keyCode == KeyEvent.VK_SPACE) {
-                    callback.toggle(true)
-                } else if (e.keyCode == KeyEvent.VK_ENTER) {
-                    KeyboardFocusManager.getCurrentKeyboardFocusManager().focusNextComponent()
-                }
-            }
-        })
-       
     }
 
     fun updateMax(i: Int, j: Int) {

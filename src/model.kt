@@ -1,3 +1,4 @@
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
@@ -19,6 +20,13 @@ class Selection {
 
     val empty: Boolean
         get() = orig == pos
+
+    val width: Int
+        get() = abs(pos.i - orig.i + 1)
+
+    val height: Int
+        get() = abs(pos.j - orig.j + 1)
+
 
     fun bottomLeft() = Coord(min(orig.i, pos.i), min(orig.j, pos.j))
     fun topRight() = Coord(max(orig.i, pos.i), max(orig.j, pos.j))
