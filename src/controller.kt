@@ -86,7 +86,7 @@ class Dbweave(title: String) : JFrame() {
 
     val views = mapOf(
             Part.THREADING to GridView(model, Part.THREADING, settings, callback, VerticalPainter()),
-            Part.TIEUP     to GridView(model, Part.TIEUP,     settings, callback, CrossPainter()),
+            Part.TIEUP     to GridView(model, Part.TIEUP,     settings, callback, SmallCirclePainter()),
             Part.TREADLING to GridView(model, Part.TREADLING, settings, callback, DotPainter()),
             Part.PATTERN   to GridView(model, Part.PATTERN,   settings, callback, FillPainter())
     )
@@ -222,6 +222,22 @@ class Dbweave(title: String) : JFrame() {
                     println("activeRange = $activeRange")
                 }
                 // TODO do all 9 ranges, plus the special ranges
+                if (e.keyCode == KeyEvent.VK_I) {
+                    settings.dx += 2
+                    settings.dy += 2
+                    arrangeComponents()
+                    repaint()
+                } else if (e.keyCode == KeyEvent.VK_U) {
+                    settings.dx = max(settings.dx - 2, 10)
+                    settings.dy = max(settings.dy - 2, 10)
+                    arrangeComponents()
+                    repaint()
+                } else if (e.keyCode == KeyEvent.VK_O) {
+                    settings.dx = 14
+                    settings.dy = 14
+                    arrangeComponents()
+                    repaint()
+                }
             }
         }
         getView(Part.PATTERN).addKeyListener(keylistener)
