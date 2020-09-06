@@ -1,7 +1,7 @@
 import kotlin.math.min
 
-class Grid(val width: Int, val height: Int){
-    private val data = ByteArray(width * height)
+class Grid(val width: Int, val height: Int, defaultValue: Byte = 0){
+    private val data = ByteArray(width * height) { defaultValue }
 
     private fun index(i: Int, j: Int) = i + j * width
 

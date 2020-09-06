@@ -6,7 +6,9 @@ enum class Part {
     THREADING,
     TIEUP,
     TREADLING,
-    PATTERN
+    PATTERN,
+    WARP_COLORS,
+    WEFT_COLORS
 }
 
 data class Coord(var i: Int, var j: Int)
@@ -69,20 +71,23 @@ class Model(width: Int, height: Int) {
     val treadling = Grid(Int.SIZE_BITS, height)
     val pegplan = Grid(Int.SIZE_BITS, height)
 
-    var pattern = Grid(width, height)
+    val pattern = Grid(width, height)
 
-    var warp_range = ThreadRange(0, 0)
-    var weft_range = ThreadRange(0, 0)
+    val warpColors = Grid(width, 1, 2)
+    val weftColors = Grid(1, height, 15)
+
+    var warpRange = ThreadRange(0, 0)
+    var weftRange = ThreadRange(0, 0)
 
     val selection = Selection()
     val cursorPos = CursorPos()
 
     fun updateRange() {
-        warp_range = get_warp_range()
-        weft_range = get_weft_range()
+        warpRange = calcWarpRange()
+        weftRange = calcWeftRange()
     }
 
-    fun get_warp_range(): ThreadRange {
+    fun calcWarpRange(): ThreadRange {
         var start = Int.MAX_VALUE
         var end = 0
         for (i in 0 until threading.width) {
@@ -93,7 +98,7 @@ class Model(width: Int, height: Int) {
         return ThreadRange(start, end)
     }
 
-    fun get_weft_range(): ThreadRange {
+    fun calcWeftRange(): ThreadRange {
         var start = Int.MAX_VALUE
         var end = 0
         for (j in 0 until treadling.height) {

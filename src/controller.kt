@@ -51,9 +51,15 @@ class Dbweave(title: String) : JFrame() {
             val i = model.selection.pos.i
             val j = model.selection.pos.j
             if (moveCursor) {
-                // TODO add checks, make configurable
-                model.selection.pos.j++
-                model.selection.orig.j++
+                if (model.selection.part == Part.WARP_COLORS) {
+                    // TODO add checks, make configurable
+                    model.selection.pos.i++
+                    model.selection.orig.i++
+                } else {
+                    // TODO add checks, make configurable
+                    model.selection.pos.j++
+                    model.selection.orig.j++
+                }
             }
             when (model.selection.part) {
                 Part.THREADING -> {
@@ -80,15 +86,25 @@ class Dbweave(title: String) : JFrame() {
                     model.updateRange()
                     repaint()
                 }
+                Part.WARP_COLORS -> {
+                    model.warpColors[i, j] = activeColor.toByte()
+                    repaint()
+                }
+                Part.WEFT_COLORS -> {
+                    model.weftColors[i, j] = activeColor.toByte()
+                    repaint()
+                }
             }
         }
     }
 
     val views = mapOf(
-            Part.THREADING to GridView(model, Part.THREADING, settings, callback, VerticalPainter()),
-            Part.TIEUP     to GridView(model, Part.TIEUP,     settings, callback, SmallCirclePainter()),
-            Part.TREADLING to GridView(model, Part.TREADLING, settings, callback, DotPainter()),
-            Part.PATTERN   to GridView(model, Part.PATTERN,   settings, callback, FillPainter())
+            Part.THREADING   to GridView(model, Part.THREADING, settings,   callback, VerticalPainter()),
+            Part.TIEUP       to GridView(model, Part.TIEUP,     settings,   callback, SmallCirclePainter()),
+            Part.TREADLING   to GridView(model, Part.TREADLING, settings,   callback, DotPainter()),
+            Part.PATTERN     to GridView(model, Part.PATTERN,   settings,   callback, FillPainter()),
+            Part.WARP_COLORS to GridView(model, Part.WARP_COLORS, settings, callback, FillPainter()),
+            Part.WEFT_COLORS to GridView(model, Part.WEFT_COLORS, settings, callback, FillPainter())
     )
 
     var focusedPart = Part.PATTERN
@@ -96,6 +112,7 @@ class Dbweave(title: String) : JFrame() {
     var focusedGrid: Grid = model.pattern
 
     var activeRange = 1.toByte()
+    var activeColor = 200
 
     fun getView(part: Part): GridView {
         return views[part] ?: error("$part not defined")
@@ -107,6 +124,8 @@ class Dbweave(title: String) : JFrame() {
             Part.TIEUP -> model.tieup
             Part.TREADLING -> model.treadling
             Part.PATTERN -> model.pattern
+            Part.WARP_COLORS -> model.warpColors
+            Part.WEFT_COLORS -> model.weftColors
         }
     }
 
@@ -143,11 +162,15 @@ class Dbweave(title: String) : JFrame() {
         getView(Part.TIEUP).updateSize(model.tieup.width, model.tieup.height)
         getView(Part.TREADLING).updateSize(model.treadling.width, model.treadling.height)
         getView(Part.PATTERN).updateSize(model.pattern.width, model.pattern.height)
+        getView(Part.WARP_COLORS).updateSize(model.warpColors.width, model.warpColors.height)
+        getView(Part.WEFT_COLORS).updateSize(model.weftColors.width, model.weftColors.height)
 
         add(getView(Part.THREADING))
         add(getView(Part.TIEUP))
         add(getView(Part.TREADLING))
         add(getView(Part.PATTERN))
+        add(getView(Part.WARP_COLORS))
+        add(getView(Part.WEFT_COLORS))
 
         arrangeComponents()
 
@@ -176,29 +199,37 @@ class Dbweave(title: String) : JFrame() {
                 val j = if (e.isControlDown) settings.groupy else 1
                 if (e.keyCode == KeyEvent.VK_LEFT) {
                     if (e.isShiftDown) {
-                        if (selection.width == settings.groupx) callback.addCoord(focusedPart, max(selection.pos.i - i + 1, 0), selection.pos.j)
-                        else callback.addCoord(focusedPart, max(selection.pos.i - i, 0), selection.pos.j)
+                        if (selection.width == settings.groupx) {
+                            if (i > 1) callback.addCoord(focusedPart, max(selection.pos.i - i + 1, 0), selection.pos.j)
+                            else callback.addCoord(focusedPart, max(selection.pos.i - i, 0), selection.pos.j)
+                        } else callback.addCoord(focusedPart, max(selection.pos.i - i, 0), selection.pos.j)
                     } else {
                         callback.startCoord(focusedPart, max(selection.pos.i - i, 0), selection.pos.j)
                     }
                 } else if (e.keyCode == KeyEvent.VK_RIGHT) {
                     if (e.isShiftDown) {
-                        if (selection.width == 1) callback.addCoord(focusedPart, min(selection.pos.i + i - 1, focusedGrid.width - 1), selection.pos.j)
-                        else callback.addCoord(focusedPart, min(selection.pos.i + i, focusedGrid.width - 1), selection.pos.j)
+                        if (selection.width == 1) {
+                            if (i > 1) callback.addCoord(focusedPart, min(selection.pos.i + i - 1, focusedGrid.width - 1), selection.pos.j)
+                            else callback.addCoord(focusedPart, min(selection.pos.i + i, focusedGrid.width - 1), selection.pos.j)
+                        } else callback.addCoord(focusedPart, min(selection.pos.i + i, focusedGrid.width - 1), selection.pos.j)
                     } else {
                         callback.startCoord(focusedPart, min(selection.pos.i + i, focusedGrid.width - 1), selection.pos.j)
                     }
                 } else if (e.keyCode == KeyEvent.VK_UP) {
                     if (e.isShiftDown) {
-                        if (selection.height == 1) callback.addCoord(focusedPart, selection.pos.i, min(selection.pos.j + j - 1, focusedGrid.height - 1))
-                        else callback.addCoord(focusedPart, selection.pos.i, min(selection.pos.j + j, focusedGrid.height - 1))
+                        if (selection.height == 1) {
+                            if (j > 1) callback.addCoord(focusedPart, selection.pos.i, min(selection.pos.j + j - 1, focusedGrid.height - 1))
+                            else callback.addCoord(focusedPart, selection.pos.i, min(selection.pos.j + j, focusedGrid.height - 1))
+                        } else callback.addCoord(focusedPart, selection.pos.i, min(selection.pos.j + j, focusedGrid.height - 1))
                     } else {
                         callback.startCoord(focusedPart, selection.pos.i, min(selection.pos.j + j, focusedGrid.height - 1))
                     }
                 } else if (e.keyCode == KeyEvent.VK_DOWN) {
                     if (e.isShiftDown) {
-                        if (selection.height == settings.groupy) callback.addCoord(focusedPart, selection.pos.i, max(selection.pos.j - j + 1, 0))
-                        else callback.addCoord(focusedPart, selection.pos.i, max(selection.pos.j - j, 0))
+                        if (selection.height == settings.groupy) {
+                            if (j > 1) callback.addCoord(focusedPart, selection.pos.i, max(selection.pos.j - j + 1, 0))
+                            else callback.addCoord(focusedPart, selection.pos.i, max(selection.pos.j - j, 0))
+                        } else callback.addCoord(focusedPart, selection.pos.i, max(selection.pos.j - j, 0))
                     } else {
                         callback.startCoord(focusedPart, selection.pos.i, max(selection.pos.j - j, 0))
                     }
@@ -238,47 +269,68 @@ class Dbweave(title: String) : JFrame() {
                     arrangeComponents()
                     repaint()
                 }
+                if (e.keyCode == KeyEvent.VK_Q) {
+                    settings.style = ViewStyle.DRAFT
+                } else if (e.keyCode == KeyEvent.VK_W) {
+                    settings.style = ViewStyle.COLOR
+                } else if (e.keyCode == KeyEvent.VK_E) {
+                    settings.style = ViewStyle.SIMULATION
+                } else if (e.keyCode == KeyEvent.VK_R) {
+                    settings.style = ViewStyle.HIDDEN
+                }
             }
         }
         getView(Part.PATTERN).addKeyListener(keylistener)
         getView(Part.THREADING).addKeyListener(keylistener)
         getView(Part.TIEUP).addKeyListener(keylistener)
         getView(Part.TREADLING).addKeyListener(keylistener)
+        getView(Part.WARP_COLORS).addKeyListener(keylistener)
+        getView(Part.WEFT_COLORS).addKeyListener(keylistener)
 
         isFocusCycleRoot = true
         focusTraversalPolicy = DbweaveFocusTraversalPolicy(
                 getView(Part.THREADING),
                 getView(Part.TIEUP),
                 getView(Part.PATTERN),
-                getView(Part.TREADLING))
+                getView(Part.TREADLING),
+                getView(Part.WARP_COLORS),
+                getView(Part.WEFT_COLORS))
     }
 
     private fun arrangeComponents() {
         val border = 2
         val cx = (contentPane.width - 2 * border) / settings.dx
         val cy = (contentPane.height - 2 * border) / settings.dy
-        val px = cx - settings.treadlingVisible - 1
-        val py = cy - settings.threadingVisible - 1
+        val px = cx - settings.treadlingVisible - 1 - 1 - 1
+        val py = cy - settings.threadingVisible - 1 - 1 - 1
 
         val x1 = border
         val w1 = px * settings.dx + 1
-        val x2 = x1 + w1 + settings.dx
+        val x2 = x1 + px * settings.dx + settings.dx
         val w2 = settings.treadlingVisible * settings.dx + 1
+        val x3 = x2 + settings.treadlingVisible * settings.dx + settings.dx
+        val w3 = settings.dx + 1
 
         val y1 = border
-        val h1 = settings.threadingVisible * settings.dy + 1
-        val y2 = y1 + h1 + settings.dx
-        val h2 = py * settings.dy + 1
+        val h1 = settings.dy + 1
+        val y2 = y1 + settings.dy + settings.dy
+        val h2 = settings.threadingVisible * settings.dy + 1
+        val y3 = y2 + settings.threadingVisible * settings.dy + settings.dy
+        val h3 = py * settings.dy + 1
 
-        getView(Part.THREADING).bounds = Rectangle(x1, y1, w1, h1)
-        getView(Part.TIEUP).bounds = Rectangle(x2, y1, w2, h1)
-        getView(Part.TREADLING).bounds = Rectangle(x2, y2, w2, h2)
-        getView(Part.PATTERN).bounds = Rectangle(x1, y2, w1, h2)
+        getView(Part.WARP_COLORS).bounds = Rectangle(x1, y1, w1, h1)
+        getView(Part.THREADING).bounds = Rectangle(x1, y2, w1, h2)
+        getView(Part.TIEUP).bounds = Rectangle(x2, y2, w2, h2)
+        getView(Part.TREADLING).bounds = Rectangle(x2, y3, w2, h3)
+        getView(Part.PATTERN).bounds = Rectangle(x1, y3, w1, h3)
+        getView(Part.WEFT_COLORS).bounds = Rectangle(x3, y3, w3, h3)
 
+        getView(Part.WARP_COLORS).updateMax(px, 1)
         getView(Part.THREADING).updateMax(px, settings.threadingVisible)
         getView(Part.TIEUP).updateMax(settings.treadlingVisible, settings.threadingVisible)
         getView(Part.TREADLING).updateMax(settings.treadlingVisible, py)
         getView(Part.PATTERN).updateMax(px, py)
+        getView(Part.WEFT_COLORS).updateMax(1, py)
 
         model.updateRange()
     }
@@ -301,6 +353,12 @@ class Dbweave(title: String) : JFrame() {
                 model.cursorPos.cursorLeft = i
                 model.cursorPos.cursorBottom = j
             }
+            Part.WARP_COLORS -> {
+                model.cursorPos.cursorLeft = i
+            }
+            Part.WEFT_COLORS -> {
+                model.cursorPos.cursorBottom = j
+            }
         }
     }
 
@@ -320,6 +378,14 @@ class Dbweave(title: String) : JFrame() {
             }
             Part.PATTERN -> {
                 model.selection.pos.i = model.cursorPos.cursorLeft
+                model.selection.pos.j = model.cursorPos.cursorBottom
+            }
+            Part.WARP_COLORS -> {
+                model.selection.pos.i = model.cursorPos.cursorLeft
+                model.selection.pos.j = 0
+            }
+            Part.WEFT_COLORS -> {
+                model.selection.pos.i = 0
                 model.selection.pos.j = model.cursorPos.cursorBottom
             }
         }

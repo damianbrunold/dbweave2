@@ -1,11 +1,16 @@
-import java.awt.BasicStroke
 import java.awt.Graphics
-import java.awt.Graphics2D
 import java.awt.Rectangle
-import kotlin.math.PI
 
 interface Painter {
     fun paintCell(p0: Graphics, bounds: Rectangle)
+}
+
+class FullPainter : Painter {
+    override fun paintCell(p0: Graphics, bounds: Rectangle) {
+        with (bounds) {
+            p0.fillRect(x, y, width, height)
+        }
+    }
 }
 
 class FillPainter : Painter {

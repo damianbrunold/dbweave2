@@ -2,6 +2,13 @@ import java.awt.*
 import java.awt.event.*
 import javax.swing.JComponent
 
+enum class ViewStyle {
+    DRAFT,
+    COLOR,
+    SIMULATION,
+    HIDDEN
+}
+
 class ViewSettings {
     var dx = 14
     var dy = 14
@@ -11,6 +18,8 @@ class ViewSettings {
 
     var groupx = 4
     var groupy = 4
+
+    var style = ViewStyle.DRAFT
 }
 
 val rangeColors = listOf<Color>(Color.WHITE, Color.BLACK, Color.BLUE.darker(), Color.RED.darker(), Color.GREEN.darker()) // TODO
@@ -29,12 +38,16 @@ class GridView(val model: Model,
             Part.TIEUP -> settings.treadlingVisible
             Part.TREADLING -> settings.treadlingVisible
             Part.PATTERN -> 50
+            Part.WARP_COLORS -> 50
+            Part.WEFT_COLORS -> 1
         }
         maxj = when (part) {
             Part.THREADING -> settings.threadingVisible
             Part.TIEUP -> settings.threadingVisible
             Part.TREADLING -> 50
             Part.PATTERN -> 50
+            Part.WARP_COLORS -> 1
+            Part.WEFT_COLORS -> 50
         }
     }
 
@@ -53,6 +66,8 @@ class GridView(val model: Model,
         Part.TIEUP -> model.tieup
         Part.TREADLING -> model.treadling
         Part.PATTERN -> model.pattern
+        Part.WARP_COLORS -> model.warpColors
+        Part.WEFT_COLORS -> model.weftColors
     }
 
     init {
@@ -124,15 +139,47 @@ class GridView(val model: Model,
         paintGrid(p0)
         p0.color = Color.BLACK
         val grid = getGrid()
-        for (i in 0 until maxi) {
-            for (j in 0 until maxj) {
-                val range = grid[i, j]
-                if (range != 0.toByte()) {
-                    if (range <= 9) {
-                        p0.color = rangeColors[range.toInt()]
+        when {
+            (part == Part.WARP_COLORS) or (part == Part.WEFT_COLORS) -> {
+                for (i in 0 until maxi) {
+                    for (j in 0 until maxj) {
+                        val value = grid[i, j]
+                        val colidx = value.toUByte().toInt()
+                        p0.color = getColor(default_colors[colidx])
                         painter.paintCell(p0, cellBounds(i, j))
-                    } else {
-                        // TODO use custom painter for special ranges (lift out, binding, unbinding)
+                    }
+                }
+            }
+            (settings.style == ViewStyle.COLOR) and (part == Part.PATTERN) -> {
+                val colorPainter = FullPainter()
+                // TODO make sure that ranges are clipped to visible part
+                for (i in model.warpRange.start until model.warpRange.end) {
+                    for (j in model.weftRange.start until model.weftRange.end) {
+                        val value = grid[i, j]
+                        val colidx = if (value > 0) model.warpColors[i, 0] else model.weftColors[j, 0] // TODO make configurable whether lifting or not
+                        p0.color = getColor(default_colors[colidx.toUByte().toInt()])
+                        colorPainter.paintCell(p0, cellBounds(i, j))
+                    }
+                }
+            }
+            (settings.style == ViewStyle.SIMULATION) and (part == Part.PATTERN) -> {
+                // TODO
+            }
+            (settings.style == ViewStyle.HIDDEN) and (part == Part.PATTERN) -> {
+                // hidden pattern
+            }
+            else -> {
+                for (i in 0 until maxi) {
+                    for (j in 0 until maxj) {
+                        val value = grid[i, j]
+                        if (value != 0.toByte()) {
+                            if (value <= 9) {
+                                p0.color = rangeColors[value.toInt()]
+                                painter.paintCell(p0, cellBounds(i, j))
+                            } else {
+                                // TODO use custom painter for special ranges (lift out, binding, unbinding)
+                            }
+                        }
                     }
                 }
             }
