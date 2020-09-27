@@ -1,10 +1,8 @@
-import javax.swing.JFrame
 import java.awt.EventQueue
 import java.awt.KeyboardFocusManager
 import java.awt.Rectangle
 import java.awt.event.*
-import javax.swing.Timer
-import javax.swing.UIManager
+import javax.swing.*
 import kotlin.math.max
 import kotlin.math.min
 
@@ -295,6 +293,25 @@ class Dbweave(title: String) : JFrame() {
                 getView(Part.TREADLING),
                 getView(Part.WARP_COLORS),
                 getView(Part.WEFT_COLORS))
+
+        val menubar = JMenuBar()
+
+        val filemenu = JMenu("File")
+        filemenu.setMnemonic('F')
+        filemenu.add(FileNew())
+        filemenu.add(FileOpen())
+        filemenu.add(FileSave())
+        filemenu.add(FileExit())
+        menubar.add(filemenu)
+
+        val editmenu = JMenu("Edit")
+        editmenu.setMnemonic('E')
+        editmenu.add(EditCopy())
+        editmenu.add(EditCut())
+        editmenu.add(EditPaste())
+        menubar.add(editmenu)
+
+        jMenuBar = menubar
     }
 
     private fun arrangeComponents() {
